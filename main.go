@@ -56,6 +56,15 @@ var (
 	cyan      = makeColor(36)
 	bold      = makeColor(1)
 	underline = makeColor(4)
+
+	grayscale = func(code int) func(string) string {
+		if !ISATTY {
+			return func(s string) string { return s }
+		}
+		return func(s string) string {
+			return fmt.Sprintf("\x1b[;38;5;%dm%s\x1b[0m", code+232, s)
+		}
+	}
 )
 
 func main() {
@@ -124,7 +133,7 @@ func main() {
 	_ = t3
 
 	// print status line and headers
-	fmt.Println("\n", resp.Proto, resp.Status)
+	fmt.Printf("\n%s%s%s\n", green("HTTP"), grayscale(14)("/"), cyan(fmt.Sprintf("%d.%d", resp.ProtoMajor, resp.ProtoMinor)))
 
 	for k, v := range resp.Header {
 		fmt.Println(k+":", strings.Join(v, ","))
