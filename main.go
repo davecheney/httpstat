@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"golang.org/x/crypto/ssh/terminal"
+	isatty "github.com/mattn/go-isatty"
 )
 
 const (
@@ -39,10 +39,11 @@ const (
 		`                                                                 total:%s` + "\n"
 )
 
-var ISATTY bool = terminal.IsTerminal(int(os.Stdout.Fd()))
+var ISATTY bool = isatty.IsTerminal(os.Stdout.Fd())
 
 func makeColor(code int) func(string) string {
 	if !ISATTY {
+		fmt.Println("HELLO")
 		return func(s string) string { return s }
 	}
 	return func(s string) string {
