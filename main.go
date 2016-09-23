@@ -97,7 +97,12 @@ func main() {
 	}()
 
 	t0 := time.Now() // before dns resolution
-	raddr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("%s:%d", host, port))
+
+	if !strings.Contains(host, ":") {
+		host = fmt.Sprintf("%s:%d", host, port)
+	}
+
+	raddr, err := net.ResolveTCPAddr("tcp", host)
 	if err != nil {
 		log.Fatalf("unable to resolve host: %v", err)
 	}
