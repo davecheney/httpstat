@@ -6,6 +6,8 @@ go:
 
 sudo: false
 
+install:
+  - true
 
 script:
   - go build github.com/davecheney/httpstat
