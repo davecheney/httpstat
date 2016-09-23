@@ -69,6 +69,23 @@ func main() {
 	scheme := url.Scheme
 	hostport := url.Host
 	host, port := func() (string, int) {
+		if strings.Contains(hostport, ":") {
+			hostWithPort := strings.Split(hostport, ":")
+			hostBase := hostWithPort[0]
+
+			if hostBase == "" {
+				log.Fatalf("unable to parse host: %v", err)
+			}
+
+			portNum, err := strconv.Atoi(hostWithPort[1])
+
+			if err != nil {
+				log.Fatalf("unable to parse port: %v", err)
+			}
+
+			return hostBase, portNum
+		}
+
 		switch scheme {
 		case "https":
 			return hostport, 443
@@ -81,6 +98,7 @@ func main() {
 	}()
 
 	t0 := time.Now() // before dns resolution
+
 	raddr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("%s:%d", host, port))
 	if err != nil {
 		log.Fatalf("unable to resolve host: %v", err)
