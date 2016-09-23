@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -37,7 +38,7 @@ const (
 		`                                                                 total:%s` + "\n"
 )
 
-const ISATTY = true // TODO(dfc) make this respect the actual pty state
+const ISATTY = runtime.GOOS != "windows" // TODO(dfc) make this respect the actual pty state
 
 func makeColor(code int) func(string) string {
 	if !ISATTY {

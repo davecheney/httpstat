@@ -17,6 +17,7 @@ The big ticket features which are missing at this point are:
 - support for https; this involves negotating the handshake before sending the request, adjusting the various timing points, and using the alternative template.
 - detect when `httpstat` is being piped to a file or other not tty device and disable coloured output.
 - support for more CURL flags, like `-H HEADER` and `-X METHOD`.
+- spool response.Body to a temporary file.
 
 ## Contributing
 
