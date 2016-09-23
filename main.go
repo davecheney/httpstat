@@ -133,10 +133,10 @@ func main() {
 	_ = t3
 
 	// print status line and headers
-	fmt.Printf("\n%s%s%s\n", green("HTTP"), grayscale(14)("/"), cyan(fmt.Sprintf("%d.%d", resp.ProtoMajor, resp.ProtoMinor)))
+	fmt.Printf("\n%s%s%s\n", green("HTTP"), grayscale(14)("/"), cyan(fmt.Sprintf("%d.%d %s", resp.ProtoMajor, resp.ProtoMinor, resp.Status)))
 
 	for k, v := range resp.Header {
-		fmt.Println(k+":", strings.Join(v, ","))
+		fmt.Println(grayscale(14)(k+":"), cyan(strings.Join(v, ",")))
 	}
 
 	fmt.Println("\nBody discarded\n")
