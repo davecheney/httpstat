@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fatih/color"
 	isatty "github.com/mattn/go-isatty"
 )
 
@@ -39,26 +40,8 @@ const (
 		`                                                                 total:%s` + "\n"
 )
 
-var ISATTY bool = isatty.IsTerminal(os.Stdout.Fd())
-
-func makeColor(code int) func(string) string {
-	if !ISATTY {
-		return func(s string) string { return s }
-	}
-	return func(s string) string {
-		return fmt.Sprintf("\x1b[%dm%s\x1b[0m", code, s)
-	}
-}
-
 var (
-	red       = makeColor(31)
-	green     = makeColor(32)
-	yellow    = makeColor(33)
-	blue      = makeColor(34)
-	magenta   = makeColor(35)
-	cyan      = makeColor(36)
-	bold      = makeColor(1)
-	underline = makeColor(4)
+	ISATTY = isatty.IsTerminal(os.Stdout.Fd())
 
 	grayscale = func(code int) func(string) string {
 		if !ISATTY {
@@ -134,20 +117,20 @@ func main() {
 	resp.Body.Close()
 
 	// print status line and headers
-	fmt.Printf("\n%s%s%s\n", green("HTTP"), grayscale(14)("/"), cyan(fmt.Sprintf("%d.%d %s", resp.ProtoMajor, resp.ProtoMinor, resp.Status)))
+	fmt.Printf("\n%s%s%s\n", color.GreenString("HTTP"), grayscale(14)("/"), color.CyanString("%d.%d %s", resp.ProtoMajor, resp.ProtoMinor, resp.Status))
 
 	for k, v := range resp.Header {
-		fmt.Println(grayscale(14)(k+":"), cyan(strings.Join(v, ",")))
+		fmt.Println(grayscale(14)(k+":"), color.GreenString(strings.Join(v, ",")))
 	}
 
 	fmt.Println("\nBody discarded\n")
 
 	fmta := func(d time.Duration) string {
-		return cyan(fmt.Sprintf("%7dms", int(d/time.Millisecond)))
+		return color.CyanString("%7dms", int(d/time.Millisecond))
 	}
 
 	fmtb := func(d time.Duration) string {
-		return cyan(fmt.Sprintf("%-9s", strconv.Itoa(int(d/time.Millisecond))+"ms"))
+		return color.CyanString("%-9s", strconv.Itoa(int(d/time.Millisecond))+"ms")
 	}
 
 	colorize := func(s string) string {
