@@ -19,14 +19,14 @@ import (
 
 const (
 	HTTPS_TEMPLATE = `` +
-		`  DNS Lookup   TCP Connection   SSL Handshake   Server Processing   Content Transfer` +
-		`[   {a0000}  |     {a0001}    |    {a0002}    |      {a0003}      |      {a0004}     ]` +
-		`             |                |               |                   |                  |` +
-		`    namelookup:{b0000}        |               |                   |                  |` +
-		`                        connect:{b0001}       |                   |                  |` +
-		`                                    pretransfer:{b0002}           |                  |` +
-		`                                                      starttransfer:{b0003}          |` +
-		`                                                                                 total:{b0004}`
+		`  DNS Lookup   TCP Connection   TLS Handshake   Server Processing   Content Transfer` + "\n" +
+		`[%s  |     %s  |    %s  |        %s  |       %s  ]` + "\n" +
+		`            |                |               |                   |                  |` + "\n" +
+		`   namelookup:%s      |               |                   |                  |` + "\n" +
+		`                       connect:%s     |                   |                  |` + "\n" +
+		`                                   pretransfer:%s         |                  |` + "\n" +
+		`                                                     starttransfer:%s        |` + "\n" +
+		`                                                                                total:%s` + "\n"
 
 	HTTP_TEMPLATE = `` +
 		`   DNS Lookup   TCP Connection   Server Processing   Content Transfer` + "\n" +
@@ -132,8 +132,6 @@ func main() {
 	t5 := time.Now() // after read body
 	resp.Body.Close()
 
-	_ = t3
-
 	// print status line and headers
 	fmt.Printf("\n%s%s%s\n", green("HTTP"), grayscale(14)("/"), cyan(fmt.Sprintf("%d.%d %s", resp.ProtoMajor, resp.ProtoMinor, resp.Status)))
 
@@ -159,7 +157,19 @@ func main() {
 
 	switch scheme {
 	case "https":
-		// TODO(dfc) handle HTTPS
+		fmt.Printf(colorize(HTTPS_TEMPLATE),
+			fmta(t1.Sub(t0)), // dns lookup
+			fmta(t2.Sub(t1)), // tcp connection
+			fmta(t3.Sub(t2)), // tls handshake
+			fmta(t4.Sub(t3)), // server processing
+			fmta(t5.Sub(t4)), // content transfer
+			fmtb(t1.Sub(t0)), // namelookup
+			fmtb(t2.Sub(t0)), // connect
+			fmtb(t3.Sub(t0)), // pretransfer
+			fmtb(t4.Sub(t0)), // starttransfer
+			fmtb(t5.Sub(t0)), // total
+		)
+
 	case "http":
 		fmt.Printf(colorize(HTTP_TEMPLATE),
 			fmta(t1.Sub(t0)), // dns lookup
