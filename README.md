@@ -1,5 +1,7 @@
 # httpstat
 
+[![Build Status](https://travis-ci.org/davecheney/httpstat.svg?branch=master)](https://travis-ci.org/davecheney/httpstat)
+
 ![Shameless](./screenshot.png)
 
 Imitation is the sincerest form of flattery.
