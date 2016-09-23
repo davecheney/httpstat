@@ -1,0 +1,12 @@
+language: go
+go_import_path: github.com/davecheney/httpstat
+go:
+  - 1.7.1
+  - tip
+
+sudo: false
+
+
+script:
+  - go build github.com/davecheney/httpstat
+  - ./httpstat http://dave.cheney.net/
