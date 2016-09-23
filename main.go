@@ -147,7 +147,7 @@ func main() {
 	}
 
 	fmtb := func(d time.Duration) string {
-		return cyan(fmt.Sprintf("%7sms", strconv.Itoa(int(d/time.Millisecond)))) // TODO(dfc) left justify, %7_s doesn't seem to work.
+		return cyan(fmt.Sprintf("%-9s", strconv.Itoa(int(d/time.Millisecond))+"ms"))
 	}
 
 	colorize := func(s string) string {
