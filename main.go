@@ -11,10 +11,11 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"runtime"
 	"strconv"
 	"strings"
 	"time"
+
+	isatty "github.com/mattn/go-isatty"
 )
 
 const (
@@ -38,7 +39,7 @@ const (
 		`                                                                 total:%s` + "\n"
 )
 
-const ISATTY = runtime.GOOS != "windows" // TODO(dfc) make this respect the actual pty state
+var ISATTY bool = isatty.IsTerminal(os.Stdout.Fd())
 
 func makeColor(code int) func(string) string {
 	if !ISATTY {
