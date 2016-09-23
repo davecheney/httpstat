@@ -68,20 +68,28 @@ func main() {
 
 	scheme := url.Scheme
 	hostport := url.Host
-	host, port := func() (string, int) {
+	host, port := func() (string, string) {
+		host, port, err := net.SplitHostPort(hostport)
+		if err != nil {
+			host = hostport
+		}
 		switch scheme {
 		case "https":
-			return hostport, 443
+			if port == "" {
+				port = "443"
+			}
 		case "http":
-			return hostport, 80
+			if port == "" {
+				port = "80"
+			}
 		default:
 			log.Fatalf("unsupported url scheme %q", scheme)
-			return "", 0 // not reached
 		}
+		return host, port
 	}()
 
 	t0 := time.Now() // before dns resolution
-	raddr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("%s:%d", host, port))
+	raddr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("%s:%s", host, port))
 	if err != nil {
 		log.Fatalf("unable to resolve host: %v", err)
 	}
