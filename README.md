@@ -1,6 +1,6 @@
 # httpstat
 
-Imitation is sincerest form of flattery.
+Imitation is the sincerest form of flattery.
 
 But seriously, https://github.com/reorx/httpstat is the new hotness, and this is a shameless rip off.
 
