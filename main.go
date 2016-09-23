@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -146,13 +147,20 @@ func main() {
 	}
 
 	fmtb := func(d time.Duration) string {
-		return cyan(fmt.Sprintf("%7dms", int(d/time.Millisecond)))
+		return cyan(fmt.Sprintf("%7sms", strconv.Itoa(int(d/time.Millisecond)))) // TODO(dfc) left justify, %7_s doesn't seem to work.
+	}
+
+	colorize := func(s string) string {
+		v := strings.Split(s, "\n")
+		v[0] = grayscale(16)(v[0])
+		return strings.Join(v, "\n")
 	}
 
 	switch scheme {
 	case "https":
+		// TODO(dfc) handle HTTPS
 	case "http":
-		fmt.Printf(HTTP_TEMPLATE,
+		fmt.Printf(colorize(HTTP_TEMPLATE),
 			fmta(t1.Sub(t0)), // dns lookup
 			fmta(t2.Sub(t1)), // tcp connection
 			fmta(t4.Sub(t2)), // server processing
