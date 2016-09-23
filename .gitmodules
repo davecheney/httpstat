@@ -1,10 +1,9 @@
-[submodule "vendor/github.com/mattn/go-isatty"]
-	path = vendor/github.com/mattn/go-isatty
-	url = https://github.com/mattn/go-isatty
-
 [submodule "vendor/github.com/fatih/color"]
 	path = vendor/github.com/fatih/color
 	url = https://github.com/fatih/color
 [submodule "vendor/github.com/mattn/go-colorable"]
 	path = vendor/github.com/mattn/go-colorable
 	url = https://github.com/mattn/go-colorable
+[submodule "vendor/github.com/mattn/go-isatty"]
+	path = vendor/github.com/mattn/go-isatty
+	url = https://github.com/mattn/go-isatty
