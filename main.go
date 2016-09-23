@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -97,6 +98,17 @@ func main() {
 	}()
 
 	t0 := time.Now() // before dns resolution
+
+	if portInHost := regexp.MustCompile(":\\d+").FindString(host); portInHost != "" {
+		portNum := regexp.MustCompile(":").Split(portInHost, -1)[0]
+
+		port, err = strconv.Atoi(portNum)
+
+		if err != nil {
+			log.Fatalf("unable to parse port in host: %v", err)
+		}
+	}
+
 	raddr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("%s:%d", host, port))
 	if err != nil {
 		log.Fatalf("unable to resolve host: %v", err)
@@ -105,7 +117,7 @@ func main() {
 	t1 := time.Now() // after dns resolution, before connect
 	conn, err := net.DialTCP("tcp", nil, raddr)
 	if err != nil {
-		log.Fatalf("unable to connect to host %vv %v", raddr, err)
+		log.Fatalf("unable to connect to host %v %v", raddr, err)
 	}
 
 	t2 := time.Now() // after connect, before request
