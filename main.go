@@ -1,16 +1,15 @@
 package main
 
 import (
-	"bufio"
-	"crypto/tls"
+	"context"
 	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
 	"mime"
-	"net"
 	"net/http"
+	"net/http/httptrace"
 	"net/url"
 	"os"
 	"path"
@@ -173,37 +172,31 @@ func getHostPort(url *url.URL) (string, string, string) {
 func visit(url *url.URL) {
 	scheme, host, port := getHostPort(url)
 
-	t0 := time.Now() // before dns resolution
-	raddr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("%s:%s", host, port))
-	if err != nil {
-		log.Fatalf("unable to resolve host: %v", err)
+	var t0, t1, t2, t3, t4 time.Time
+
+	trace := &httptrace.ClientTrace{
+		DNSStart: func(i httptrace.DNSStartInfo) { t0 = time.Now() },
+		DNSDone:  func(i httptrace.DNSDoneInfo) { t1 = time.Now() },
+		ConnectDone: func(net, addr string, err error) {
+			if err != nil {
+				log.Fatalf("unable to connect to host %v %v", addr, err)
+			}
+			t2 = time.Now()
+
+			printf("\n%s%s\n", color.GreenString("Connected to "), color.CyanString("%s", addr))
+		},
+		WroteRequest:         func(i httptrace.WroteRequestInfo) { t3 = time.Now() },
+		GotFirstResponseByte: func() { t4 = time.Now() },
 	}
 
-	var conn net.Conn
-	t1 := time.Now() // after dns resolution, before connect
-	conn, err = net.DialTCP("tcp", nil, raddr)
-	if err != nil {
-		log.Fatalf("unable to connect to host %v; %v", raddr, err)
-	}
-	printf("\n%s%s\n", color.GreenString("Connected to "), color.CyanString("%s", raddr.String()))
-
-	var t2 time.Time // after connect, before TLS handshake
-	if scheme == "https" {
-		t2 = time.Now()
-		c := tls.Client(conn, &tls.Config{
-			ServerName:         host,
-			InsecureSkipVerify: insecure,
-		})
-		if err := c.Handshake(); err != nil {
-			log.Fatalf("unable to negotiate TLS handshake: %v", err)
-		}
-		conn = c
-	}
-
-	t3 := time.Now() // after connect, before request
 	if onlyHeader {
 		httpMethod = "HEAD"
 	}
+
+	if (httpMethod == "POST" || httpMethod == "PUT") && postBody == "" {
+		log.Fatal("must supply post body using -d when POST or PUT is used")
+	}
+
 	req, err := http.NewRequest(httpMethod, url.String(), createBody(postBody))
 	if err != nil {
 		log.Fatalf("unable to create request: %v", err)
@@ -217,12 +210,10 @@ func visit(url *url.URL) {
 		req.Header.Add(k, v)
 	}
 
-	if err := req.Write(conn); err != nil {
-		log.Fatalf("failed to write request: %v", err)
-	}
+	req = req.WithContext(httptrace.WithClientTrace(context.Background(), trace))
 
-	t4 := time.Now() // after request, before read response
-	resp, err := http.ReadResponse(bufio.NewReader(conn), req)
+	resp, err := http.DefaultClient.Do(req)
+
 	if err != nil {
 		log.Fatalf("failed to read response: %v", err)
 	}
