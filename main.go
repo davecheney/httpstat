@@ -28,12 +28,34 @@ const (
 
 	HTTP_TEMPLATE = `` +
 		`   DNS Lookup   TCP Connection   Server Processing   Content Transfer` + "\n" +
-		`[ %7dms  |     %7dms  |        %7dms  |       %7dms  ]` + "\n" +
+		`[ %s  |     %s  |        %s  |       %s  ]` + "\n" +
 		`             |                |                   |                  |` + "\n" +
-		`    namelookup:%7dms      |                   |                  |` + "\n" +
-		`                        connect:%7dms         |                  |` + "\n" +
-		`                                      starttransfer:%7dms        |` + "\n" +
-		`                                                                 total:%7dms` + "\n"
+		`    namelookup:%s      |                   |                  |` + "\n" +
+		`                        connect:%s         |                  |` + "\n" +
+		`                                      starttransfer:%s        |` + "\n" +
+		`                                                                 total:%s` + "\n"
+)
+
+const ISATTY = true // TODO(dfc) make this respect the actual pty state
+
+func makeColor(code int) func(string) string {
+	if !ISATTY {
+		return func(s string) string { return s }
+	}
+	return func(s string) string {
+		return fmt.Sprintf("\x1b[%dm%s\x1b[0m", code, s)
+	}
+}
+
+var (
+	red       = makeColor(31)
+	green     = makeColor(32)
+	yellow    = makeColor(33)
+	blue      = makeColor(34)
+	magenta   = makeColor(35)
+	cyan      = makeColor(36)
+	bold      = makeColor(1)
+	underline = makeColor(4)
 )
 
 func main() {
@@ -110,18 +132,26 @@ func main() {
 
 	fmt.Println("\nBody discarded\n")
 
+	fmta := func(d time.Duration) string {
+		return cyan(fmt.Sprintf("%7dms", int(d/time.Millisecond)))
+	}
+
+	fmtb := func(d time.Duration) string {
+		return cyan(fmt.Sprintf("%7dms", int(d/time.Millisecond)))
+	}
+
 	switch scheme {
 	case "https":
 	case "http":
 		fmt.Printf(HTTP_TEMPLATE,
-			int(t1.Sub(t0)/time.Millisecond), // dns lookup
-			int(t2.Sub(t1)/time.Millisecond), // tcp connection
-			int(t4.Sub(t2)/time.Millisecond), // server processing
-			int(t5.Sub(t4)/time.Millisecond), // content transfer
-			int(t1.Sub(t0)/time.Millisecond), // namelookup
-			int(t2.Sub(t0)/time.Millisecond), // connect
-			int(t4.Sub(t0)/time.Millisecond), // starttransfer
-			int(t5.Sub(t0)/time.Millisecond), // total
+			fmta(t1.Sub(t0)), // dns lookup
+			fmta(t2.Sub(t1)), // tcp connection
+			fmta(t4.Sub(t2)), // server processing
+			fmta(t5.Sub(t4)), // content transfer
+			fmtb(t1.Sub(t0)), // namelookup
+			fmtb(t2.Sub(t0)), // connect
+			fmtb(t4.Sub(t0)), // starttransfer
+			fmtb(t5.Sub(t0)), // total
 		)
 
 	}
