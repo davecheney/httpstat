@@ -56,17 +56,27 @@ var (
 	// The command line flags.
 	httpMethod string
 	postBody   string
+
+	usage = fmt.Sprintf("usage: %s URL", os.Args[0])
 )
 
 func init() {
 	flag.StringVar(&httpMethod, "X", "GET", "HTTP method to use")
 	flag.StringVar(&postBody, "d", "", "the body of a POST or PUT request")
+	flag.Usage = func() {
+		os.Stderr.WriteString(usage + "\n")
+		flag.PrintDefaults()
+		os.Exit(2)
+	}
 }
 
 func main() {
 	flag.Parse()
 
 	args := flag.Args()
+	if len(args) != 1 {
+		log.Fatalf(usage)
+	}
 
 	url, err := url.Parse(args[0])
 	if err != nil {
