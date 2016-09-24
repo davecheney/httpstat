@@ -56,6 +56,7 @@ var (
 	httpMethod      string
 	postBody        string
 	followRedirects bool
+	onlyHeader      bool
 
 	usage = fmt.Sprintf("usage: %s URL", os.Args[0])
 )
@@ -64,6 +65,7 @@ func init() {
 	flag.StringVar(&httpMethod, "X", "GET", "HTTP method to use")
 	flag.StringVar(&postBody, "d", "", "the body of a POST or PUT request")
 	flag.BoolVar(&followRedirects, "L", false, "follow 30x redirects")
+	flag.BoolVar(&onlyHeader, "I", false, "don't read body of request")
 	flag.Usage = func() {
 		os.Stderr.WriteString(usage + "\n")
 		flag.PrintDefaults()
@@ -83,6 +85,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("could not parse url %q: %v", args[0], err)
 	}
+
 	visit(url)
 }
 
@@ -135,6 +138,9 @@ func visit(url *url.URL) {
 	}
 
 	t3 := time.Now() // after connect, before request
+	if onlyHeader {
+		httpMethod = "HEAD"
+	}
 	if (httpMethod == "POST" || httpMethod == "PUT") && postBody == "" {
 		log.Fatal("must supply post body using -d when POST or PUT is used")
 	}
@@ -152,14 +158,17 @@ func visit(url *url.URL) {
 	if err != nil {
 		log.Fatalf("failed to read response: %v", err)
 	}
+	defer resp.Body.Close()
 
-	t5 := time.Now() // after read request, before read body
-	if _, err := io.Copy(ioutil.Discard, resp.Body); err != nil {
-		log.Fatalf("failed to read response body: %v", err)
+	t5 := time.Now()
+	t6 := t5
+	// don't read body if only header is requested
+	if !onlyHeader {
+		if _, err := io.Copy(ioutil.Discard, resp.Body); err != nil {
+			log.Fatalf("failed to read response body: %v", err)
+		}
+		t6 = time.Now() // after read body
 	}
-
-	t6 := time.Now() // after read body
-	resp.Body.Close()
 
 	// print status line and headers
 	fmt.Printf("\n%s%s%s\n", color.GreenString("HTTP"), grayscale(14)("/"), color.CyanString("%d.%d %s", resp.ProtoMajor, resp.ProtoMinor, resp.Status))
