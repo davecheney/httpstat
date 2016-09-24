@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"github.com/fatih/color"
-	isatty "github.com/mattn/go-isatty"
 )
 
 const (
@@ -41,11 +40,10 @@ const (
 )
 
 var (
-	ISATTY      = isatty.IsTerminal(os.Stdout.Fd())
 	requestBody io.Reader
 
 	grayscale = func(code int) func(string) string {
-		if !ISATTY {
+		if color.NoColor {
 			return func(s string) string { return s }
 		}
 		return func(s string) string {
