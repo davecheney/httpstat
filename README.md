@@ -24,7 +24,7 @@ The big ticket features which are missing at this point are:
 - ~~detect when `httpstat` is being piped to a file or other not tty device and disable coloured output.~~ done, thanks @amy
 - support for more CURL flags, like `-H HEADER` and `-X METHOD`.
 - spool response.Body to a temporary file.
-- Sort response headers inteligently, #18
+- Sort response headers intelligently, #18
 
 ## Contributing
 
