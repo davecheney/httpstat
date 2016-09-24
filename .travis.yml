@@ -7,7 +7,7 @@ go:
 sudo: false
 
 install:
-  - true
+  - echo "skipping travis' default go get -t -v to ensure we're only using vendor/ dependencies"
 
 script:
   - go build github.com/davecheney/httpstat
@@ -15,3 +15,6 @@ script:
   - ./httpstat http://dave.cheney.net:80/
   - ./httpstat -X POST -d 'post' http://httpbin.org/post
   - ./httpstat -X DELETE http://httpbin.org/delete
+  - ./httpstat https://www.google.com/
+  - ./httpstat https://www.google.com:443/
+  

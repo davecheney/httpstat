@@ -121,16 +121,15 @@ func main() {
 	if scheme == "https" {
 		t2 = time.Now()
 		c := tls.Client(conn, &tls.Config{InsecureSkipVerify: true})
-		err := c.Handshake()
-		if err != nil {
-			log.Fatalf("unable to negotiate TLS handshake")
+		if err := c.Handshake(); err != nil {
+			log.Fatalf("unable to negotiate TLS handshake: %v", err)
 		}
 		conn = c
 	}
 
 	t3 := time.Now() // after connect, before request
 	if (httpMethod == "POST" || httpMethod == "PUT") && postBody == "" {
-		log.Fatalf("must supply post body using -d when POST or PUT is used")
+		log.Fatal("must supply post body using -d when POST or PUT is used")
 	}
 	req, err := http.NewRequest(httpMethod, url.String(), strings.NewReader(postBody))
 	if err != nil {
@@ -192,7 +191,6 @@ func main() {
 			fmtb(t5.Sub(t0)), // starttransfer
 			fmtb(t6.Sub(t0)), // total
 		)
-
 	case "http":
 		fmt.Printf(colorize(HTTP_TEMPLATE),
 			fmta(t1.Sub(t0)), // dns lookup
@@ -204,6 +202,5 @@ func main() {
 			fmtb(t5.Sub(t0)), // starttransfer
 			fmtb(t6.Sub(t0)), // total
 		)
-
 	}
 }
