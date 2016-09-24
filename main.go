@@ -158,17 +158,13 @@ func visit(url *url.URL) {
 	if err != nil {
 		log.Fatalf("failed to read response: %v", err)
 	}
-	defer resp.Body.Close()
 
 	t5 := time.Now()
-	t6 := t5
-	// don't read body if only header is requested
-	if !onlyHeader {
-		if _, err := io.Copy(ioutil.Discard, resp.Body); err != nil {
-			log.Fatalf("failed to read response body: %v", err)
-		}
-		t6 = time.Now() // after read body
+	if _, err := io.Copy(ioutil.Discard, resp.Body); err != nil {
+		log.Fatalf("failed to read response body: %v", err)
 	}
+	resp.Body.Close()
+	t6 := time.Now() // after read body
 
 	// print status line and headers
 	fmt.Printf("\n%s%s%s\n", color.GreenString("HTTP"), grayscale(14)("/"), color.CyanString("%d.%d %s", resp.ProtoMajor, resp.ProtoMinor, resp.Status))
