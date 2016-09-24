@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"io"
@@ -94,13 +95,25 @@ func main() {
 		log.Fatalf("unable to resolve host: %v", err)
 	}
 
+	var conn net.Conn
 	t1 := time.Now() // after dns resolution, before connect
-	conn, err := net.DialTCP("tcp", nil, raddr)
+	conn, err = net.DialTCP("tcp", nil, raddr)
 	if err != nil {
 		log.Fatalf("unable to connect to host %vv %v", raddr, err)
 	}
 
-	t2 := time.Now() // after connect, before request
+	var t2 time.Time // after connect, before TLS handshake
+	if scheme == "https" {
+		t2 = time.Now()
+		c := tls.Client(conn, &tls.Config{InsecureSkipVerify: true})
+		err := c.Handshake()
+		if err != nil {
+			log.Fatalf("unable to negotiate TLS handshake")
+		}
+		conn = c
+	}
+
+	t3 := time.Now() // after connect, before request
 	req, err := http.NewRequest("GET", url.String(), nil)
 	if err != nil {
 		log.Fatalf("unable to create request: %v", err)
@@ -110,18 +123,18 @@ func main() {
 		log.Fatalf("failed to write request: %v", err)
 	}
 
-	t3 := time.Now() // after request, before read response
+	t4 := time.Now() // after request, before read response
 	resp, err := http.ReadResponse(bufio.NewReader(conn), req)
 	if err != nil {
 		log.Fatalf("failed to read response: %v", err)
 	}
 
-	t4 := time.Now() // after read request, before read body
+	t5 := time.Now() // after read request, before read body
 	if _, err := io.Copy(ioutil.Discard, resp.Body); err != nil {
 		log.Fatalf("failed to read response body: %v", err)
 	}
 
-	t5 := time.Now() // after read body
+	t6 := time.Now() // after read body
 	resp.Body.Close()
 
 	// print status line and headers
@@ -153,25 +166,25 @@ func main() {
 			fmta(t1.Sub(t0)), // dns lookup
 			fmta(t2.Sub(t1)), // tcp connection
 			fmta(t3.Sub(t2)), // tls handshake
-			fmta(t4.Sub(t3)), // server processing
-			fmta(t5.Sub(t4)), // content transfer
+			fmta(t5.Sub(t4)), // server processing
+			fmta(t6.Sub(t5)), // content transfer
 			fmtb(t1.Sub(t0)), // namelookup
 			fmtb(t2.Sub(t0)), // connect
 			fmtb(t3.Sub(t0)), // pretransfer
-			fmtb(t4.Sub(t0)), // starttransfer
-			fmtb(t5.Sub(t0)), // total
+			fmtb(t5.Sub(t0)), // starttransfer
+			fmtb(t6.Sub(t0)), // total
 		)
 
 	case "http":
 		fmt.Printf(colorize(HTTP_TEMPLATE),
 			fmta(t1.Sub(t0)), // dns lookup
-			fmta(t2.Sub(t1)), // tcp connection
-			fmta(t4.Sub(t2)), // server processing
-			fmta(t5.Sub(t4)), // content transfer
+			fmta(t3.Sub(t1)), // tcp connection
+			fmta(t5.Sub(t3)), // server processing
+			fmta(t6.Sub(t5)), // content transfer
 			fmtb(t1.Sub(t0)), // namelookup
-			fmtb(t2.Sub(t0)), // connect
-			fmtb(t4.Sub(t0)), // starttransfer
-			fmtb(t5.Sub(t0)), // total
+			fmtb(t3.Sub(t0)), // connect
+			fmtb(t5.Sub(t0)), // starttransfer
+			fmtb(t6.Sub(t0)), // total
 		)
 
 	}
