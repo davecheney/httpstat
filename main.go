@@ -148,7 +148,7 @@ func visit(url *url.URL) {
 	t1 := time.Now() // after dns resolution, before connect
 	conn, err = net.DialTCP("tcp", nil, raddr)
 	if err != nil {
-		log.Fatalf("unable to connect to host %vv %v", raddr, err)
+		log.Fatalf("unable to connect to host %v %v", raddr, err)
 	}
 
 	var t2 time.Time // after connect, before TLS handshake
