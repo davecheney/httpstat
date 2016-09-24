@@ -9,9 +9,13 @@ Imitation is the sincerest form of flattery.
 But seriously, https://github.com/reorx/httpstat is the new hotness, and this is a shameless rip off.
 
 ## Installation
-
-	$ go get -u github.com/davecheney/httpstat
-
+```
+$ go get -u github.com/davecheney/httpstat
+```	
+## Usage
+```
+$ httpstat https://example.com/
+```
 ## We don't need no stinking curl
 
 `httpstat.py` is a wrapper around `curl(1)`, which is all fine and good, but what if you don't have `curl(1)` or `python(1)` installed?
@@ -26,6 +30,7 @@ The big ticket features which are missing at this point are:
 - spool response.Body to a temporary file.
 - Sort response headers intelligently, #18.
 - Support curl's `-L` flag to follow redirects, #23.
+- Handle urls without a scheme, #26
 
 ## Contributing
 
