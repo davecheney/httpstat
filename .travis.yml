@@ -17,4 +17,4 @@ script:
   - ./httpstat -X DELETE http://httpbin.org/delete
   - ./httpstat https://www.google.com/
   - ./httpstat https://www.google.com:443/
-  
+  - ./httpstat -L http://httpbin.org/redirect-to?url=https://httpbin.org/relative-redirect/1

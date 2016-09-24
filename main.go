@@ -52,9 +52,10 @@ var (
 		}
 	}
 
-	// The command line flags.
-	httpMethod string
-	postBody   string
+	// Command line flags.
+	httpMethod      string
+	postBody        string
+	followRedirects bool
 
 	usage = fmt.Sprintf("usage: %s URL", os.Args[0])
 )
@@ -62,6 +63,7 @@ var (
 func init() {
 	flag.StringVar(&httpMethod, "X", "GET", "HTTP method to use")
 	flag.StringVar(&postBody, "d", "", "the body of a POST or PUT request")
+	flag.BoolVar(&followRedirects, "L", false, "follow 30x redirects")
 	flag.Usage = func() {
 		os.Stderr.WriteString(usage + "\n")
 		flag.PrintDefaults()
@@ -81,7 +83,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("could not parse url %q: %v", args[0], err)
 	}
+	visit(url)
+}
 
+// visit visits a url and times the interaction.
+// If the response is a 30x, visit follows the redirect.
+func visit(url *url.URL) {
 	scheme := url.Scheme
 	hostport := url.Host
 	host, port := func() (string, string) {
@@ -202,5 +209,17 @@ func main() {
 			fmtb(t5.Sub(t0)), // starttransfer
 			fmtb(t6.Sub(t0)), // total
 		)
+	}
+
+	if followRedirects && resp.StatusCode > 299 && resp.StatusCode < 400 {
+		loc, err := resp.Location()
+		if err != nil {
+			if err == http.ErrNoLocation {
+				// 30x but no Location to follow, give up.
+				return
+			}
+			log.Fatal("unable to follow redirect: %v", err)
+		}
+		visit(loc)
 	}
 }
