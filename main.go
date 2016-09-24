@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"crypto/tls"
-	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -18,6 +17,7 @@ import (
 	"time"
 
 	"github.com/fatih/color"
+	"github.com/spf13/pflag"
 )
 
 const (
@@ -58,28 +58,32 @@ var (
 	postBody        string
 	followRedirects bool
 	onlyHeader      bool
-
-	usage = fmt.Sprintf("usage: %s URL", os.Args[0])
+	help            bool
 )
 
 func init() {
-	flag.StringVar(&httpMethod, "X", "GET", "HTTP method to use")
-	flag.StringVar(&postBody, "d", "", "the body of a POST or PUT request")
-	flag.BoolVar(&followRedirects, "L", false, "follow 30x redirects")
-	flag.BoolVar(&onlyHeader, "I", false, "don't read body of request")
-	flag.Usage = func() {
-		os.Stderr.WriteString(usage + "\n")
-		flag.PrintDefaults()
-		os.Exit(2)
+	pflag.StringVarP(&httpMethod, "request", "X", "GET", "HTTP `method` to use")
+	pflag.StringVarP(&postBody, "data", "d", "", "the `body` of a POST or PUT request")
+	pflag.BoolVarP(&followRedirects, "location", "L", false, "follow 30x redirects")
+	pflag.BoolVarP(&onlyHeader, "head", "I", false, "don't read body of request")
+	pflag.BoolVarP(&help, "help", "h", false, "show usage information")
+
+	pflag.Usage = func() {
+		fmt.Fprintln(os.Stderr, "Usage: httpstat [flags] <URL>\n\nFlags:")
+		pflag.PrintDefaults()
 	}
 }
 
 func main() {
-	flag.Parse()
+	pflag.Parse()
 
-	args := flag.Args()
-	if len(args) != 1 {
-		log.Fatalf(usage)
+	args := pflag.Args()
+	if len(args) != 1 || help {
+		pflag.Usage()
+		if !help {
+			os.Exit(2)
+		}
+		os.Exit(0)
 	}
 
 	url, err := url.Parse(args[0])
