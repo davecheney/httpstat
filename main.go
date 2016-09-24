@@ -91,7 +91,7 @@ func main() {
 
 	url, err := url.Parse(uri)
 	if err != nil {
-		log.Fatalf("could not parse url %q: %v", args[0], err)
+		log.Fatalf("could not parse url %q: %v", uri, err)
 	}
 
 	visit(url)
