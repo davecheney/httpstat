@@ -13,5 +13,5 @@ script:
   - go build github.com/davecheney/httpstat
   - ./httpstat http://dave.cheney.net/
   - ./httpstat http://dave.cheney.net:80/
-  - ./httpstat -X POST -d '{"POST": "JSON"}' http://httpbin.org/post
+  - ./httpstat -X POST -d 'post' http://httpbin.org/post
   - ./httpstat -X DELETE http://httpbin.org/delete
