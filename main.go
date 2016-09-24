@@ -58,6 +58,7 @@ var (
 	postBody        string
 	followRedirects bool
 	onlyHeader      bool
+	httpHeaders     headers
 
 	usage = fmt.Sprintf("usage: %s URL", os.Args[0])
 )
@@ -67,6 +68,7 @@ func init() {
 	flag.StringVar(&postBody, "d", "", "the body of a POST or PUT request")
 	flag.BoolVar(&followRedirects, "L", false, "follow 30x redirects")
 	flag.BoolVar(&onlyHeader, "I", false, "don't read body of request")
+	flag.Var(&httpHeaders, "H", "HTTP Header(s) to set. Can be used multiple times. -H 'Accept:...' -H 'Range:....'")
 	flag.Usage = func() {
 		os.Stderr.WriteString(usage + "\n")
 		flag.PrintDefaults()
@@ -88,6 +90,14 @@ func main() {
 	}
 
 	visit(url)
+}
+
+func headerKeyValue(h string) (string, string) {
+	i := strings.Index(h, ":")
+	if i == -1 {
+		log.Fatalf("Header '%s' has invalid format, missing ':'", h)
+	}
+	return strings.TrimRight(h[:i], " "), strings.TrimLeft(h[i:], " :")
 }
 
 // visit visits a url and times the interaction.
@@ -148,6 +158,9 @@ func visit(url *url.URL) {
 	req, err := http.NewRequest(httpMethod, url.String(), strings.NewReader(postBody))
 	if err != nil {
 		log.Fatalf("unable to create request: %v", err)
+	}
+	for _, h := range httpHeaders {
+		req.Header.Add(headerKeyValue(h))
 	}
 
 	if err := req.Write(conn); err != nil {
@@ -236,6 +249,19 @@ func visit(url *url.URL) {
 }
 
 type headers []string
+
+func (h headers) String() string {
+	var o []string
+	for _, v := range h {
+		o = append(o, "-H "+v)
+	}
+	return strings.Join(o, " ")
+}
+
+func (h *headers) Set(v string) error {
+	*h = append(*h, v)
+	return nil
+}
 
 func (h headers) Len() int      { return len(h) }
 func (h headers) Swap(i, j int) { h[i], h[j] = h[j], h[i] }
