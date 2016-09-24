@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	HTTPS_TEMPLATE = `` +
+	HTTPSTemplate = `` +
 		`  DNS Lookup   TCP Connection   TLS Handshake   Server Processing   Content Transfer` + "\n" +
 		`[%s  |     %s  |    %s  |        %s  |       %s  ]` + "\n" +
 		`            |                |               |                   |                  |` + "\n" +
@@ -31,7 +31,7 @@ const (
 		`                                                     starttransfer:%s        |` + "\n" +
 		`                                                                                total:%s` + "\n"
 
-	HTTP_TEMPLATE = `` +
+	HTTPTemplate = `` +
 		`   DNS Lookup   TCP Connection   Server Processing   Content Transfer` + "\n" +
 		`[ %s  |     %s  |        %s  |       %s  ]` + "\n" +
 		`             |                |                   |                  |` + "\n" +
@@ -82,7 +82,14 @@ func main() {
 		log.Fatalf(usage)
 	}
 
-	url, err := url.Parse(args[0])
+	uri := args[0]
+	if string(uri[0:3]) != "http" {
+		u := []string{"https://"}
+		u = append(u, uri)
+		uri = strings.Join(u, "")
+	}
+
+	url, err := url.Parse(uri)
 	if err != nil {
 		log.Fatalf("could not parse url %q: %v", args[0], err)
 	}
@@ -125,14 +132,14 @@ func visit(url *url.URL) {
 	t1 := time.Now() // after dns resolution, before connect
 	conn, err = net.DialTCP("tcp", nil, raddr)
 	if err != nil {
-		log.Fatalf("unable to connect to host %vv %v", raddr, err)
+		log.Fatalf("unable to connect to host %v; %v", raddr, err)
 	}
 
 	var t2 time.Time // after connect, before TLS handshake
 	if scheme == "https" {
 		t2 = time.Now()
 		c := tls.Client(conn, &tls.Config{InsecureSkipVerify: true})
-		if err := c.Handshake(); err != nil {
+		if err = c.Handshake(); err != nil {
 			log.Fatalf("unable to negotiate TLS handshake: %v", err)
 		}
 		conn = c
@@ -150,7 +157,7 @@ func visit(url *url.URL) {
 		log.Fatalf("unable to create request: %v", err)
 	}
 
-	if err := req.Write(conn); err != nil {
+	if err = req.Write(conn); err != nil {
 		log.Fatalf("failed to write request: %v", err)
 	}
 
@@ -179,7 +186,7 @@ func visit(url *url.URL) {
 		fmt.Println(grayscale(14)(k+":"), color.CyanString(strings.Join(resp.Header[k], ",")))
 	}
 
-	fmt.Println("\nBody discarded\n")
+	fmt.Println("\nBody discarded")
 
 	fmta := func(d time.Duration) string {
 		return color.CyanString("%7dms", int(d/time.Millisecond))
@@ -197,7 +204,7 @@ func visit(url *url.URL) {
 
 	switch scheme {
 	case "https":
-		fmt.Printf(colorize(HTTPS_TEMPLATE),
+		fmt.Printf(colorize(HTTPSTemplate),
 			fmta(t1.Sub(t0)), // dns lookup
 			fmta(t2.Sub(t1)), // tcp connection
 			fmta(t3.Sub(t2)), // tls handshake
@@ -210,7 +217,7 @@ func visit(url *url.URL) {
 			fmtb(t6.Sub(t0)), // total
 		)
 	case "http":
-		fmt.Printf(colorize(HTTP_TEMPLATE),
+		fmt.Printf(colorize(HTTPTemplate),
 			fmta(t1.Sub(t0)), // dns lookup
 			fmta(t3.Sub(t1)), // tcp connection
 			fmta(t5.Sub(t3)), // server processing
@@ -229,7 +236,7 @@ func visit(url *url.URL) {
 				// 30x but no Location to follow, give up.
 				return
 			}
-			log.Fatal("unable to follow redirect: %v", err)
+			log.Fatalf("unable to follow redirect: %v", err)
 		}
 		visit(loc)
 	}
