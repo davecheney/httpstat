@@ -55,6 +55,7 @@ var (
 
 	// Command line flags.
 	httpMethod      string
+	httpHeaders     httpHeaderValue
 	postBody        string
 	followRedirects bool
 	onlyHeader      bool
@@ -63,7 +64,10 @@ var (
 )
 
 func init() {
+	httpHeaders = make(httpHeaderValue)
+
 	flag.StringVar(&httpMethod, "X", "GET", "HTTP method to use")
+	flag.Var(&httpHeaders, "H", "HTTP headers to use")
 	flag.StringVar(&postBody, "d", "", "the body of a POST or PUT request")
 	flag.BoolVar(&followRedirects, "L", false, "follow 30x redirects")
 	flag.BoolVar(&onlyHeader, "I", false, "don't read body of request")
@@ -148,6 +152,15 @@ func visit(url *url.URL) {
 	req, err := http.NewRequest(httpMethod, url.String(), strings.NewReader(postBody))
 	if err != nil {
 		log.Fatalf("unable to create request: %v", err)
+	}
+
+	for k, v := range httpHeaders {
+		req.Header.Set(k, v)
+	}
+
+	// Host header can not be set from Header
+	if v, ok := httpHeaders["Host"]; ok {
+		req.Host = v
 	}
 
 	if err := req.Write(conn); err != nil {
@@ -273,4 +286,24 @@ func (h headers) Less(i, j int) bool {
 		return a < b
 	}
 	return x
+}
+
+type httpHeaderValue map[string]string
+
+func (h httpHeaderValue) Set(s string) error {
+	v := strings.Split(s, ":")
+	if len(v) != 2 {
+		return fmt.Errorf("HTTP header must be specifed as 'name : value' format")
+	}
+
+	h[strings.Trim(v[0], " ")] = strings.Trim(v[1], " ")
+	return nil
+}
+
+func (h httpHeaderValue) String() string {
+	kvs := make([]string, 0, len(h))
+	for k, v := range h {
+		kvs = append(kvs, fmt.Sprintf("%s:%s", k, v))
+	}
+	return strings.Join(kvs, ",")
 }
