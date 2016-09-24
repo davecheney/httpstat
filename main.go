@@ -60,7 +60,7 @@ var (
 
 func init() {
 	flag.StringVar(&httpMethod, "X", "GET", "HTTP method to use")
-	flag.StringVar(&postBody, "d", "", "the body of a POST request")
+	flag.StringVar(&postBody, "d", "", "the body of a POST or PUT request")
 }
 
 func main() {
