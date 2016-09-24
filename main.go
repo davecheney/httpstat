@@ -82,12 +82,35 @@ func main() {
 		log.Fatalf(usage)
 	}
 
-	url, err := url.Parse(args[0])
+	rawURL := normalizeURL(args[0])
+	url, err := url.Parse(rawURL)
 	if err != nil {
 		log.Fatalf("could not parse url %q: %v", args[0], err)
 	}
 
 	visit(url)
+}
+
+// normalizeURL normalizes the url input.
+// If the scheme is missing, we assume it's "https" (or "http" if port 80).
+// If the host is missing, we assume it's "localhost".
+func normalizeURL(rawURL string) string {
+	if strings.Index(rawURL, "://") > -1 {
+		return rawURL
+	}
+
+	hostport := strings.Split(rawURL, ":")
+	if len(hostport) == 2 {
+		if hostport[0] == "" {
+			rawURL = "localhost:" + hostport[1]
+		}
+
+		if strings.Index(hostport[1], "80") == 0 {
+			return "http://" + rawURL
+		}
+	}
+
+	return "https://" + rawURL
 }
 
 // visit visits a url and times the interaction.
