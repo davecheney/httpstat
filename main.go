@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -169,8 +170,13 @@ func visit(url *url.URL) {
 	// print status line and headers
 	fmt.Printf("\n%s%s%s\n", color.GreenString("HTTP"), grayscale(14)("/"), color.CyanString("%d.%d %s", resp.ProtoMajor, resp.ProtoMinor, resp.Status))
 
-	for k, v := range resp.Header {
-		fmt.Println(grayscale(14)(k+":"), color.CyanString(strings.Join(v, ",")))
+	names := make([]string, 0, len(resp.Header))
+	for k := range resp.Header {
+		names = append(names, k)
+	}
+	sort.Sort(headers(names))
+	for _, k := range names {
+		fmt.Println(grayscale(14)(k+":"), color.CyanString(strings.Join(resp.Header[k], ",")))
 	}
 
 	fmt.Println("\nBody discarded\n")
@@ -227,4 +233,44 @@ func visit(url *url.URL) {
 		}
 		visit(loc)
 	}
+}
+
+type headers []string
+
+func (h headers) Len() int      { return len(h) }
+func (h headers) Swap(i, j int) { h[i], h[j] = h[j], h[i] }
+func (h headers) Less(i, j int) bool {
+	a, b := h[i], h[j]
+
+	// server always sorts at the top
+	if a == "Server" {
+		return true
+	}
+	if b == "Server" {
+		return false
+	}
+
+	endtoend := func(n string) bool {
+		// https://www.w3.org/Protocols/rfc2616/rfc2616-sec13.html#sec13.5.1
+		switch n {
+		case "Connection",
+			"Keep-Alive",
+			"Proxy-Authenticate",
+			"Proxy-Authorization",
+			"TE",
+			"Trailers",
+			"Transfer-Encoding",
+			"Upgrade":
+			return false
+		default:
+			return true
+		}
+	}
+
+	x, y := endtoend(a), endtoend(b)
+	if x == y {
+		// both are of the same class
+		return a < b
+	}
+	return x
 }
