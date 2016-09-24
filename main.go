@@ -41,7 +41,8 @@ const (
 )
 
 var (
-	ISATTY = isatty.IsTerminal(os.Stdout.Fd())
+	ISATTY      = isatty.IsTerminal(os.Stdout.Fd())
+	requestBody io.Reader
 
 	grayscale = func(code int) func(string) string {
 		if !ISATTY {
@@ -51,15 +52,21 @@ var (
 			return fmt.Sprintf("\x1b[;38;5;%dm%s\x1b[0m", code+232, s)
 		}
 	}
+
+	// The command line flags.
+	httpMethod string
+	postBody   string
 )
+
+func init() {
+	flag.StringVar(&httpMethod, "X", "GET", "HTTP method to use")
+	flag.StringVar(&postBody, "d", "", "the body of a POST request")
+}
 
 func main() {
 	flag.Parse()
 
 	args := flag.Args()
-	if len(args) != 1 {
-		log.Fatalf("usage: %s URL", os.Args[0])
-	}
 
 	url, err := url.Parse(args[0])
 	if err != nil {
@@ -101,7 +108,13 @@ func main() {
 	}
 
 	t2 := time.Now() // after connect, before request
-	req, err := http.NewRequest("GET", url.String(), nil)
+	if (httpMethod == "POST" || httpMethod == "PUT") && postBody == "" {
+		log.Fatalf("must supply post body using -d when POST or PUT is used")
+	} else {
+		requestBody = strings.NewReader(postBody)
+	}
+
+	req, err := http.NewRequest(httpMethod, url.String(), requestBody)
 	if err != nil {
 		log.Fatalf("unable to create request: %v", err)
 	}
