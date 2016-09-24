@@ -29,7 +29,7 @@ The big ticket features which are missing at this point are:
 - support for more CURL flags, like `-H HEADER` and `-X METHOD`.
 - spool response.Body to a temporary file.
 - Sort response headers intelligently, #18.
-- Support curl's `-L` flag to follow redirects, #23.
+- ~~Support curl's `-L` flag to follow redirects, #23.~~
 - Handle urls without a scheme, #26
 
 ## Contributing
