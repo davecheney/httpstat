@@ -166,8 +166,18 @@ func visit(url *url.URL) {
 		log.Fatalf("failed to read response: %v", err)
 	}
 
+	w := ioutil.Discard
+	var f *os.File
+	if !onlyHeader {
+		f, err = ioutil.TempFile("", "httpstat-")
+		if err != nil {
+			log.Fatalf("failed to create temporary file: %v", err)
+		}
+		defer f.Close()
+		w = f
+	}
 	t5 := time.Now()
-	if _, err := io.Copy(ioutil.Discard, resp.Body); err != nil {
+	if _, err := io.Copy(w, resp.Body); err != nil {
 		log.Fatalf("failed to read response body: %v", err)
 	}
 	resp.Body.Close()
@@ -185,7 +195,11 @@ func visit(url *url.URL) {
 		fmt.Println(grayscale(14)(k+":"), color.CyanString(strings.Join(resp.Header[k], ",")))
 	}
 
-	fmt.Printf("\nBody discarded\n\n")
+	if f != nil {
+		fmt.Printf("\n%s stored in: %s\n\n", color.GreenString("Body"), f.Name())
+	} else {
+		fmt.Printf("\nBody discarded\n\n")
+	}
 
 	fmta := func(d time.Duration) string {
 		return color.CyanString("%7dms", int(d/time.Millisecond))
