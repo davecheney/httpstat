@@ -20,3 +20,8 @@ script:
   - ./httpstat -L http://httpbin.org/redirect-to?url=https://httpbin.org/relative-redirect/1
   - ./httpstat -I http://example.com/
   - ./httpstat -I -L http://httpbin.org/redirect/1
+  - ./httpstat google.com
+  - ./httpstat google.com:80
+  - ./httpstat google.com:443
+  - ./httpstat :80
+  - ./httpstat :443

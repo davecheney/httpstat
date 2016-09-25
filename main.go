@@ -83,10 +83,8 @@ func main() {
 	}
 
 	uri := args[0]
-	if string(uri[0:3]) != "http" {
-		u := []string{"https://"}
-		u = append(u, uri)
-		uri = strings.Join(u, "")
+	if strings.Contains(uri, "://") != true {
+		uri = "https://" + uri
 	}
 
 	url, err := url.Parse(uri)
@@ -102,6 +100,12 @@ func main() {
 func visit(url *url.URL) {
 	scheme := url.Scheme
 	hostport := url.Host
+
+	// No hostname, just a port
+	if strings.HasPrefix(hostport, ":") {
+		hostport = "localhost" + hostport
+	}
+
 	host, port := func() (string, string) {
 		host, port, err := net.SplitHostPort(hostport)
 		if err != nil {
