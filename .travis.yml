@@ -26,4 +26,3 @@ script:
   - ./httpstat -O http://example.com/file && stat file
   - ./httpstat -o custom http://example.com/file && stat custom
   - ./httpstat -O http://example.com/ && stat example.com
-  - ./httpstat -O https://www.google.com:443/ && stat www.google.com

@@ -303,13 +303,8 @@ func readResponseBody(req *http.Request, resp *http.Response) string {
 			// TODO(dfc) handle Content-Disposition: attachment
 			filename = path.Base(req.URL.RequestURI())
 
-			//Save `http://example.com:4321/` to `example.com`
 			if filename == "/" {
-				host, _, err := net.SplitHostPort(req.URL.Host)
-				if err != nil {
-					host = req.URL.Host
-				}
-				filename = host
+				log.Fatalf("No remote filename; specify output filename with -o to save response body")
 			}
 		}
 
