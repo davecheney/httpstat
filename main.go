@@ -185,7 +185,7 @@ func visit(url *url.URL) {
 		fmt.Println(grayscale(14)(k+":"), color.CyanString(strings.Join(resp.Header[k], ",")))
 	}
 
-	fmt.Println("\nBody discarded\n")
+	fmt.Printf("\nBody discarded\n\n")
 
 	fmta := func(d time.Duration) string {
 		return color.CyanString("%7dms", int(d/time.Millisecond))
@@ -235,7 +235,7 @@ func visit(url *url.URL) {
 				// 30x but no Location to follow, give up.
 				return
 			}
-			log.Fatal("unable to follow redirect: %v", err)
+			log.Fatalf("unable to follow redirect: %v", err)
 		}
 		visit(loc)
 	}
