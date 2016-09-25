@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"io"
@@ -212,7 +213,14 @@ func visit(url *url.URL) {
 
 	req = req.WithContext(httptrace.WithClientTrace(context.Background(), trace))
 
-	resp, err := http.DefaultClient.Do(req)
+	tr := &http.Transport{}
+	if insecure {
+		tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	}
+
+	client := &http.Client{Transport: tr}
+
+	resp, err := client.Do(req)
 
 	if err != nil {
 		log.Fatalf("failed to read response: %v", err)
