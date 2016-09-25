@@ -94,7 +94,7 @@ func main() {
 
 	args := flag.Args()
 	if len(args) != 1 {
-		log.Fatalf(usage)
+		flag.Usage()
 	}
 
 	url, err := url.Parse(args[0])
