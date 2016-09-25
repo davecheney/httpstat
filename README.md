@@ -23,7 +23,7 @@ $ httpstat https://example.com/
 - Skip timing the body of a response with `-I`.
 - Follow 30x redirects with `-L`.
 - Change HTTP method with `-X METHOD`.
-- Provide a `PUT` or `POST` request body with `-d string`.
+- Provide a `PUT` or `POST` request body with `-d string`. To supply the `PUT` or `POST` body as a file, use `-d @filename`.
 - Add extra request headers with `-H 'Name: value'`.
 
 ## We don't need no stinking curl
