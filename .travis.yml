@@ -23,3 +23,5 @@ script:
   - ./httpstat -I -L http://httpbin.org/redirect/1
   - ./httpstat https://www.apple.com/
   - ./httpstat -H Accept:\ application/vnd.heroku+json\;\ version=3 https://api.heroku.com/schema
+  - ./httpstat -O http://example.com/file && stat file
+  - ./httpstat -o custom http://example.com/file && stat custom
