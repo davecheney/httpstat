@@ -229,7 +229,7 @@ func visit(url *url.URL) {
 				// 30x but no Location to follow, give up.
 				return
 			}
-			log.Fatal("unable to follow redirect: %v", err)
+			log.Fatalf("unable to follow redirect: %v", err)
 		}
 		visit(loc)
 	}
