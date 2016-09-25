@@ -254,7 +254,7 @@ func visit(url *url.URL) {
 		)
 	}
 
-	if followRedirects && resp.StatusCode > 299 && resp.StatusCode < 400 {
+	if followRedirects && isRedirect(resp) {
 		loc, err := resp.Location()
 		if err != nil {
 			if err == http.ErrNoLocation {
@@ -273,6 +273,10 @@ func visit(url *url.URL) {
 	}
 }
 
+func isRedirect(resp *http.Response) bool {
+	return resp.StatusCode > 299 && resp.StatusCode < 400
+}
+
 func createBody(body string) io.Reader {
 	if strings.HasPrefix(body, "@") {
 		filename := body[1:]
@@ -289,9 +293,9 @@ func createBody(body string) io.Reader {
 // readResponseBody returns an informational message about the
 // disposition of the response body's contents.
 func readResponseBody(req *http.Request, resp *http.Response) string {
-	// TODO(dfc) do not process body if status code is in the 30x range
-
-	// TODO(dfc) if we issued a HEAD request, there is no body to process.
+	if isRedirect(resp) || req.Method == http.MethodHead {
+		return ""
+	}
 
 	w := ioutil.Discard
 	msg := color.CyanString("Body discarded")
