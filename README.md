@@ -16,24 +16,29 @@ $ go get -u github.com/davecheney/httpstat
 ```
 $ httpstat https://example.com/
 ```
+## Features
+
+- Windows/BSD/Linux supported.
+- HTTP and HTTPS are supported, for self signed certificates use `-k`.
+- Skip timing the body of a response with `-I`.
+- Follow 30x redirects with `-L`.
+- Change HTTP method with `-X METHOD`.
+- Provide a `PUT` or `POST` request body with `-d string`.
+
 ## We don't need no stinking curl
 
 `httpstat.py` is a wrapper around `curl(1)`, which is all fine and good, but what if you don't have `curl(1)` or `python(1)` installed?
 
 ## TODO
 
-The big ticket features which are missing at this point are:
+This project is aiming for a 1.0 release on the 3rd of October. Open issues for this release are tagged with [this milestone](https://github.com/davecheney/httpstat/milestone/1).
 
-- ~~support for https; this involves negotating the handshake before sending the request, adjusting the various timing points, and using the alternative template.~~ done, thanks @freeformz
-- ~~detect when `httpstat` is being piped to a file or other not tty device and disable coloured output.~~ done, thanks @amy
-- support for more CURL flags, like `-H HEADER` and `-X METHOD`.
-- spool response.Body to a temporary file.
-- ~~Sort response headers intelligently, #18.~~
-- ~~Support curl's `-L` flag to follow redirects, #23.~~
-- Handle urls without a scheme, #26
+Any open issue not tagged for the [stable release milestone](https://github.com/davecheney/httpstat/milestone/1) will be addressed after the 1.0 release.
 
 ## Contributing
 
 Bug reports and feature requests are welcome.
 
-Pull requests are most welcome, but if the feature is not on the TODO list, please open an issue to discuss the feature before slinging code. Thank you.
+Pull requests are most welcome but must include a `fixes #NNN` or `updates #NNN` comment. 
+
+Please discuss your design on the accompanying issue before submitting a pull request. If there is no suitable issue, please open one to discuss the feature before slinging code. Thank you.

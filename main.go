@@ -58,6 +58,7 @@ var (
 	postBody        string
 	followRedirects bool
 	onlyHeader      bool
+	insecure        bool
 
 	usage = fmt.Sprintf("usage: %s URL", os.Args[0])
 )
@@ -67,6 +68,8 @@ func init() {
 	flag.StringVar(&postBody, "d", "", "the body of a POST or PUT request")
 	flag.BoolVar(&followRedirects, "L", false, "follow 30x redirects")
 	flag.BoolVar(&onlyHeader, "I", false, "don't read body of request")
+	flag.BoolVar(&insecure, "k", false, "allow insecure SSL connections")
+
 	flag.Usage = func() {
 		os.Stderr.WriteString(usage + "\n")
 		flag.PrintDefaults()
@@ -149,12 +152,17 @@ func visit(url *url.URL) {
 	if err != nil {
 		log.Fatalf("unable to connect to host %v; %v", raddr, err)
 	}
+	fmt.Printf("\n%s%s\n", color.GreenString("Connected to "), color.CyanString(raddr.String()))
 
 	var t2 time.Time // after connect, before TLS handshake
 	if scheme == "https" {
 		t2 = time.Now()
-		c := tls.Client(conn, &tls.Config{InsecureSkipVerify: true})
-		if err = c.Handshake(); err != nil {
+		c := tls.Client(conn, &tls.Config{
+			ServerName:         host,
+			InsecureSkipVerify: insecure,
+		})
+		if err := c.Handshake(); err != nil {
+
 			log.Fatalf("unable to negotiate TLS handshake: %v", err)
 		}
 		conn = c
@@ -182,10 +190,8 @@ func visit(url *url.URL) {
 		log.Fatalf("failed to read response: %v", err)
 	}
 
-	t5 := time.Now()
-	if _, err := io.Copy(ioutil.Discard, resp.Body); err != nil {
-		log.Fatalf("failed to read response body: %v", err)
-	}
+	t5 := time.Now() // after read response
+	bodyMsg := readResponseBody(resp)
 	resp.Body.Close()
 	t6 := time.Now() // after read body
 
@@ -201,7 +207,9 @@ func visit(url *url.URL) {
 		fmt.Println(grayscale(14)(k+":"), color.CyanString(strings.Join(resp.Header[k], ",")))
 	}
 
-	fmt.Println("\nBody discarded")
+	if bodyMsg != "" {
+		fmt.Printf("\n%s\n", bodyMsg)
+	}
 
 	fmta := func(d time.Duration) string {
 		return color.CyanString("%7dms", int(d/time.Millisecond))
@@ -216,6 +224,8 @@ func visit(url *url.URL) {
 		v[0] = grayscale(16)(v[0])
 		return strings.Join(v, "\n")
 	}
+
+	fmt.Println()
 
 	switch scheme {
 	case "https":
@@ -255,6 +265,21 @@ func visit(url *url.URL) {
 		}
 		visit(loc)
 	}
+}
+
+// readResponseBody consumes the body of the response.
+// readResponseBody returns an informational message about the
+// disposition of the response body's contents.
+func readResponseBody(resp *http.Response) string {
+	// TODO(dfc) do not process body if status code is in the 30x range
+
+	// TODO(dfc) if we issued a HEAD request, there is no body to process.
+
+	if _, err := io.Copy(ioutil.Discard, resp.Body); err != nil {
+		log.Fatalf("failed to read response body: %v", err)
+	}
+
+	return color.CyanString("Body discarded")
 }
 
 type headers []string

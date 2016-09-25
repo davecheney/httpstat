@@ -10,6 +10,7 @@ install:
   - echo "skipping travis' default go get -t -v to ensure we're only using vendor/ dependencies"
 
 script:
+  - go vet $(go list ./... | grep -v "vendor")
   - go build github.com/davecheney/httpstat
   - ./httpstat http://dave.cheney.net/
   - ./httpstat http://dave.cheney.net:80/
