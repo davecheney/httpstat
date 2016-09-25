@@ -25,4 +25,3 @@ script:
   - ./httpstat -H Accept:\ application/vnd.heroku+json\;\ version=3 https://api.heroku.com/schema
   - ./httpstat -O http://example.com/file && stat file
   - ./httpstat -o custom http://example.com/file && stat custom
-  - ./httpstat -O http://example.com/ && stat example.com
