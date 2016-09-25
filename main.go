@@ -97,6 +97,10 @@ func main() {
 		flag.Usage()
 	}
 
+	if (httpMethod == "POST" || httpMethod == "PUT") && postBody == "" {
+		log.Fatal("must supply post body using -d when POST or PUT is used")
+	}
+
 	url, err := url.Parse(args[0])
 	if err != nil {
 		log.Fatalf("could not parse url %q: %v", args[0], err)
@@ -167,9 +171,6 @@ func visit(url *url.URL) {
 	t3 := time.Now() // after connect, before request
 	if onlyHeader {
 		httpMethod = "HEAD"
-	}
-	if (httpMethod == "POST" || httpMethod == "PUT") && postBody == "" {
-		log.Fatal("must supply post body using -d when POST or PUT is used")
 	}
 	req, err := http.NewRequest(httpMethod, url.String(), createBody(postBody))
 	if err != nil {
