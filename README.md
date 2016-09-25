@@ -39,6 +39,6 @@ Any open issue not tagged for the [stable release milestone](https://github.com/
 
 Bug reports and feature requests are welcome.
 
-Pull requests are most welcome, but must include a `Fixes #NNN` comment. 
+Pull requests are most welcome but must include a `fixes #NNN` or `updates #NNN` comment. 
 
 Please discuss your design on the accompanying issue before submitting a pull request. If there is no suitable issue, please open one to discuss the feature before slinging code. Thank you.
