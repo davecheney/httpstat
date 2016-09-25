@@ -102,36 +102,40 @@ func schemify(uri string) string {
 	return uri
 }
 
+func getHostPort(URLScheme, URLHost string) (string, string, string) {
+	scheme := URLScheme
+
+	// No hostname, just a port
+	if strings.HasPrefix(URLHost, ":") {
+		URLHost = "localhost" + URLHost
+	}
+
+	host, port, err := net.SplitHostPort(URLHost)
+	if err != nil {
+		host = URLHost
+	}
+
+	switch scheme {
+	case "https":
+		if port == "" {
+			port = "443"
+		}
+	case "http":
+		if port == "" {
+			port = "80"
+		}
+	default:
+		log.Fatalf("unsupported url scheme %q", scheme)
+	}
+
+	return scheme, host, port
+}
+
 // visit visits a url and times the interaction.
 // If the response is a 30x, visit follows the redirect.
 func visit(url *url.URL) {
-	scheme := url.Scheme
-	hostport := url.Host
 
-	// No hostname, just a port
-	if strings.HasPrefix(hostport, ":") {
-		hostport = "localhost" + hostport
-	}
-
-	host, port := func() (string, string) {
-		host, port, err := net.SplitHostPort(hostport)
-		if err != nil {
-			host = hostport
-		}
-		switch scheme {
-		case "https":
-			if port == "" {
-				port = "443"
-			}
-		case "http":
-			if port == "" {
-				port = "80"
-			}
-		default:
-			log.Fatalf("unsupported url scheme %q", scheme)
-		}
-		return host, port
-	}()
+	scheme, host, port := getHostPort(url.Scheme, url.Host)
 
 	t0 := time.Now() // before dns resolution
 	raddr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("%s:%s", host, port))
