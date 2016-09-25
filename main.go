@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 	"sort"
 	"strconv"
 	"strings"
@@ -282,37 +283,32 @@ func readResponseBody(req *http.Request, resp *http.Response) string {
 
 	// TODO(dfc) if we issued a HEAD request, there is no body to process.
 
-	var (
-		err     error
-		fp      io.Writer
-		bodyMsg string
-	)
+	w := ioutil.Discard
+	msg := color.CyanString("Body discarded")
 
 	if saveOutput == true || outputFile != "" {
-		var filename string
+		filename := outputFile
 
 		if saveOutput == true {
-			parts := strings.Split(req.URL.RequestURI(), "/")
-			filename = parts[len(parts)-1]
-		} else {
-			filename = outputFile
+			// TODO(dfc) handle Content-Disposition: attachment
+			// TODO(dfc) handle the case where someone calls
+			// httpstat -O http://example.com/
+			filename = path.Base(req.URL.RequestURI())
 		}
 
-		fp, err = os.Create(filename)
+		var err error
+		w, err = os.Create(filename)
 		if err != nil {
 			log.Fatalf("unable to create file %s", outputFile)
 		}
-		bodyMsg = color.CyanString("Body read")
-	} else {
-		fp = ioutil.Discard
-		bodyMsg = color.CyanString("Body discarded")
+		msg = color.CyanString("Body read")
 	}
 
-	if _, err := io.Copy(fp, resp.Body); err != nil {
+	if _, err := io.Copy(w, resp.Body); err != nil {
 		log.Fatalf("failed to read response body: %v", err)
 	}
 
-	return bodyMsg
+	return msg
 }
 
 type headers []string

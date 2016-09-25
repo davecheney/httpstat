@@ -25,6 +25,7 @@ $ httpstat https://example.com/
 - Change HTTP method with `-X METHOD`.
 - Provide a `PUT` or `POST` request body with `-d string`. To supply the `PUT` or `POST` body as a file, use `-d @filename`.
 - Add extra request headers with `-H 'Name: value'`.
+- The response body is usually discarded, you can use `-o filename` to save it to a file, or `-O` to save it to the file name suggested by the server.
 
 ## We don't need no stinking curl
 
