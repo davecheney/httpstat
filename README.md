@@ -24,6 +24,11 @@ $ httpstat https://example.com/
 - Follow 30x redirects with `-L`.
 - Change HTTP method with `-X METHOD`.
 - Provide a `PUT` or `POST` request body with `-d string`.
+By default it will write response body in a tempfile, but you can let it print out by setting `HTTPSTAT_SHOW_BODY=true`:
+
+```
+$ HTTPSTAT_SHOW_BODY=true httpstat https://example.com/
+```
 
 ## We don't need no stinking curl
 

@@ -61,6 +61,8 @@ var (
 	insecure        bool
 
 	usage = fmt.Sprintf("usage: %s URL", os.Args[0])
+
+	showBody bool = false // controls whether the body is written to a temporary file, or to stdout.
 )
 
 func init() {
@@ -167,10 +169,7 @@ func visit(url *url.URL) {
 	}
 
 	t5 := time.Now()
-	if _, err := io.Copy(ioutil.Discard, resp.Body); err != nil {
-		log.Fatalf("failed to read response body: %v", err)
-	}
-	resp.Body.Close()
+
 	t6 := time.Now() // after read body
 
 	// print status line and headers
@@ -185,7 +184,12 @@ func visit(url *url.URL) {
 		fmt.Println(grayscale(14)(k+":"), color.CyanString(strings.Join(resp.Header[k], ",")))
 	}
 
-	fmt.Printf("\nBody discarded\n\n")
+	// @TODO include logic to address status codes / http methods that do not include a body
+	// to the response. EX: HEAD / HTTP/1.1 will return headers, but no body, or 302 Moved
+	// should not return a body
+	fmt.Println(readResponseBody(resp.Body))
+
+	resp.Body.Close()
 
 	fmta := func(d time.Duration) string {
 		return color.CyanString("%7dms", int(d/time.Millisecond))
@@ -239,6 +243,46 @@ func visit(url *url.URL) {
 		}
 		visit(loc)
 	}
+}
+
+// readResponseBody spools the http response body to disk or to screen depending
+// on the value of HTTPSTAT_SHOW_BODY.
+func readResponseBody(response io.Reader) string {
+	var err error
+	showBody = getEnvOrDefault(os.Getenv("HTTPSTAT_SHOW_BODY"), showBody)
+
+	if showBody {
+		buf, err := ioutil.ReadAll(response)
+		if err != nil {
+			log.Fatalf("unable to read response: %v", err)
+		}
+
+		return fmt.Sprintf("RESPONSE BODY: %v", string(buf)) // @TODO limit buffer size
+	}
+
+	tmpfile, err := ioutil.TempFile("", "")
+
+	if err != nil {
+		log.Fatalf("unable to create temporary file: %v", err)
+	}
+
+	if _, err := io.Copy(tmpfile, response); err != nil {
+		log.Fatalf("failed to read response body: %v", err)
+	}
+
+	defer tmpfile.Close()
+
+	return fmt.Sprintf("RESPONSE BODY STORED IN: %v\n", tmpfile.Name())
+}
+
+// getEnvOrDefault returns a valid boolean from environment varible. Only true
+// accepted as valid env value. All else evaluates to def given.
+func getEnvOrDefault(env string, def bool) bool {
+	if env == "true" {
+		return true
+	}
+
+	return def
 }
 
 type headers []string
