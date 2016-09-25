@@ -218,11 +218,9 @@ func visit(url *url.URL) {
 		log.Fatalf("failed to read response: %v", err)
 	}
 
-	t5 := time.Now() // after read response
 	bodyMsg := readResponseBody(req, resp)
-	resp.Body.Close()
 
-	t6 := time.Now() // after read body
+	t5 := time.Now() // after read body
 
 	// print status line and headers
 	printf("\n%s%s%s\n", color.GreenString("HTTP"), grayscale(14)("/"), color.CyanString("%d.%d %s", resp.ProtoMajor, resp.ProtoMinor, resp.Status))
@@ -262,24 +260,24 @@ func visit(url *url.URL) {
 			fmta(t1.Sub(t0)), // dns lookup
 			fmta(t2.Sub(t1)), // tcp connection
 			fmta(t3.Sub(t2)), // tls handshake
-			fmta(t5.Sub(t4)), // server processing
-			fmta(t6.Sub(t5)), // content transfer
+			fmta(t4.Sub(t3)), // server processing
+			fmta(t5.Sub(t4)), // content transfer
 			fmtb(t1.Sub(t0)), // namelookup
 			fmtb(t2.Sub(t0)), // connect
 			fmtb(t3.Sub(t0)), // pretransfer
-			fmtb(t5.Sub(t0)), // starttransfer
-			fmtb(t6.Sub(t0)), // total
+			fmtb(t4.Sub(t0)), // starttransfer
+			fmtb(t5.Sub(t0)), // total
 		)
 	case "http":
 		printf(colorize(HTTPTemplate),
 			fmta(t1.Sub(t0)), // dns lookup
 			fmta(t3.Sub(t1)), // tcp connection
-			fmta(t5.Sub(t3)), // server processing
-			fmta(t6.Sub(t5)), // content transfer
+			fmta(t4.Sub(t3)), // server processing
+			fmta(t5.Sub(t4)), // content transfer
 			fmtb(t1.Sub(t0)), // namelookup
 			fmtb(t3.Sub(t0)), // connect
-			fmtb(t5.Sub(t0)), // starttransfer
-			fmtb(t6.Sub(t0)), // total
+			fmtb(t4.Sub(t0)), // starttransfer
+			fmtb(t5.Sub(t0)), // total
 		)
 	}
 
