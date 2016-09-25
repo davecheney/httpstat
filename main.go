@@ -161,7 +161,7 @@ func visit(url *url.URL) {
 	if (httpMethod == "POST" || httpMethod == "PUT") && postBody == "" {
 		log.Fatal("must supply post body using -d when POST or PUT is used")
 	}
-	req, err := http.NewRequest(httpMethod, url.String(), strings.NewReader(postBody))
+	req, err := http.NewRequest(httpMethod, url.String(), createBody(postBody))
 	if err != nil {
 		log.Fatalf("unable to create request: %v", err)
 	}
@@ -254,6 +254,18 @@ func visit(url *url.URL) {
 		}
 		visit(loc)
 	}
+}
+
+func createBody(body string) io.Reader {
+	if strings.HasPrefix(body, "@") {
+		filename := body[1:]
+		f, err := os.Open(filename)
+		if err != nil {
+			log.Fatalf("failed to open data file %s: %v", filename, err)
+		}
+		return f
+	}
+	return strings.NewReader(body)
 }
 
 // readResponseBody consumes the body of the response.
