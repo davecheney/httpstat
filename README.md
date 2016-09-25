@@ -39,4 +39,4 @@ Any open issue not tagged for the [stable release milestone](https://github.com/
 
 Bug reports and feature requests are welcome.
 
-Pull requests are most welcome, but please discuss your design on the accompanying issue fields. If there is no appropraite issue, please open an issue to discuss the feature before slinging code. Thank you.
+Pull requests are most welcome, but please discuss your design on the accompanying issue fields. If there is no suitable issue, please open an issue to discuss the feature before slinging code. Thank you.
