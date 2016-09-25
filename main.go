@@ -58,6 +58,7 @@ var (
 	postBody        string
 	followRedirects bool
 	onlyHeader      bool
+	insecure        bool
 
 	usage = fmt.Sprintf("usage: %s URL", os.Args[0])
 )
@@ -67,6 +68,8 @@ func init() {
 	flag.StringVar(&postBody, "d", "", "the body of a POST or PUT request")
 	flag.BoolVar(&followRedirects, "L", false, "follow 30x redirects")
 	flag.BoolVar(&onlyHeader, "I", false, "don't read body of request")
+	flag.BoolVar(&insecure, "k", false, "allow insecure SSL connections")
+
 	flag.Usage = func() {
 		os.Stderr.WriteString(usage + "\n")
 		flag.PrintDefaults()
@@ -131,7 +134,10 @@ func visit(url *url.URL) {
 	var t2 time.Time // after connect, before TLS handshake
 	if scheme == "https" {
 		t2 = time.Now()
-		c := tls.Client(conn, &tls.Config{InsecureSkipVerify: true})
+		c := tls.Client(conn, &tls.Config{
+			ServerName:         host,
+			InsecureSkipVerify: insecure,
+		})
 		if err := c.Handshake(); err != nil {
 			log.Fatalf("unable to negotiate TLS handshake: %v", err)
 		}
