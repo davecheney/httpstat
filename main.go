@@ -82,15 +82,7 @@ func main() {
 		log.Fatalf(usage)
 	}
 
-	uri := args[0]
-	if strings.Contains(uri, "://") != true {
-		if strings.HasSuffix(uri, ":80") != true {
-			uri = "https://" + uri
-		} else {
-			uri = "http://" + uri
-		}
-
-	}
+	uri := schemify(args[0])
 
 	url, err := url.Parse(uri)
 	if err != nil {
@@ -98,6 +90,16 @@ func main() {
 	}
 
 	visit(url)
+}
+
+func schemify(uri string) string {
+	if strings.Contains(uri, "://") != true {
+		if strings.HasSuffix(uri, ":80") != true {
+			return "https://" + uri
+		}
+		return "http://" + uri
+	}
+	return uri
 }
 
 // visit visits a url and times the interaction.
