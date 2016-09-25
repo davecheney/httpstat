@@ -84,7 +84,12 @@ func main() {
 
 	uri := args[0]
 	if strings.Contains(uri, "://") != true {
-		uri = "https://" + uri
+		if strings.HasSuffix(uri, ":80") != true {
+			uri = "https://" + uri
+		} else {
+			uri = "http://" + uri
+		}
+
 	}
 
 	url, err := url.Parse(uri)
