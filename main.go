@@ -61,8 +61,13 @@ var (
 	insecure        bool
 	httpHeaders     headers
 
+	// number of redirects followed
+	redirectsFollowed int
+
 	usage = fmt.Sprintf("usage: %s URL", os.Args[0])
 )
+
+const maxRedirects = 10
 
 func init() {
 	flag.StringVar(&httpMethod, "X", "GET", "HTTP method to use")
@@ -71,6 +76,7 @@ func init() {
 	flag.BoolVar(&onlyHeader, "I", false, "don't read body of request")
 	flag.BoolVar(&insecure, "k", false, "allow insecure SSL connections")
 	flag.Var(&httpHeaders, "H", "HTTP Header(s) to set. Can be used multiple times. -H 'Accept:...' -H 'Range:....'")
+
 	flag.Usage = func() {
 		os.Stderr.WriteString(usage + "\n")
 		flag.PrintDefaults()
@@ -90,7 +96,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("could not parse url %q: %v", args[0], err)
 	}
-
 	visit(url)
 }
 
@@ -252,6 +257,13 @@ func visit(url *url.URL) {
 			}
 			log.Fatalf("unable to follow redirect: %v", err)
 		}
+
+		redirectsFollowed++
+		if redirectsFollowed > maxRedirects {
+			log.Fatalf("maximum number of redirects (%d) followed\n", maxRedirects)
+			return
+		}
+
 		visit(loc)
 	}
 }
