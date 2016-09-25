@@ -7,3 +7,6 @@
 [submodule "vendor/github.com/mattn/go-isatty"]
 	path = vendor/github.com/mattn/go-isatty
 	url = https://github.com/mattn/go-isatty
+[submodule "vendor/github.com/spf13/pflag"]
+	path = vendor/github.com/spf13/pflag
+	url = https://github.com/spf13/pflag
