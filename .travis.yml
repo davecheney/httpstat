@@ -22,4 +22,4 @@ script:
   - ./httpstat -I http://example.com/
   - ./httpstat -I -L http://httpbin.org/redirect/1
   - ./httpstat https://www.apple.com/
-  - ./httpstat -H 'Accept: application/vnd.heroku+json; version=3' https://api.heroku.com/schema
+  - ./httpstat -H Accept:\ application/vnd.heroku+json\;\ version=3 https://api.heroku.com/schema

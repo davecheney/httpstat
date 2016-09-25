@@ -24,6 +24,7 @@ $ httpstat https://example.com/
 - Follow 30x redirects with `-L`.
 - Change HTTP method with `-X METHOD`.
 - Provide a `PUT` or `POST` request body with `-d string`.
+- Add extra request headers with `-H 'Name: value'`.
 
 ## We don't need no stinking curl
 
