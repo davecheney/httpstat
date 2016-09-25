@@ -166,10 +166,8 @@ func visit(url *url.URL) {
 		log.Fatalf("failed to read response: %v", err)
 	}
 
-	t5 := time.Now()
-	if _, err := io.Copy(ioutil.Discard, resp.Body); err != nil {
-		log.Fatalf("failed to read response body: %v", err)
-	}
+	t5 := time.Now() // after read response
+	bodyMsg := readResponseBody(resp)
 	resp.Body.Close()
 	t6 := time.Now() // after read body
 
@@ -185,7 +183,9 @@ func visit(url *url.URL) {
 		fmt.Println(grayscale(14)(k+":"), color.CyanString(strings.Join(resp.Header[k], ",")))
 	}
 
-	fmt.Printf("\nBody discarded\n\n")
+	if bodyMsg != "" {
+		fmt.Printf("\n%s\n", bodyMsg)
+	}
 
 	fmta := func(d time.Duration) string {
 		return color.CyanString("%7dms", int(d/time.Millisecond))
@@ -200,6 +200,8 @@ func visit(url *url.URL) {
 		v[0] = grayscale(16)(v[0])
 		return strings.Join(v, "\n")
 	}
+
+	fmt.Println()
 
 	switch scheme {
 	case "https":
@@ -239,6 +241,21 @@ func visit(url *url.URL) {
 		}
 		visit(loc)
 	}
+}
+
+// readResponseBody consumes the body of the response.
+// readResponseBody returns an informational message about the
+// disposition of the response body's contents.
+func readResponseBody(resp *http.Response) string {
+	// TODO(dfc) do not process body if status code is in the 30x range
+
+	// TODO(dfc) if we issued a HEAD request, there is no body to process.
+
+	if _, err := io.Copy(ioutil.Discard, resp.Body); err != nil {
+		log.Fatalf("failed to read response body: %v", err)
+	}
+
+	return color.CyanString("Body discarded")
 }
 
 type headers []string
