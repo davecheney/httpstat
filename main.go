@@ -294,7 +294,6 @@ func createBody(body string) io.Reader {
 // disposition of the response body's contents.
 func readResponseBody(req *http.Request, resp *http.Response) string {
 	if isRedirect(resp) || req.Method == http.MethodHead {
-		resp.Body.Close()
 		return ""
 	}
 
