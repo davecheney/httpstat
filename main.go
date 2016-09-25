@@ -301,9 +301,16 @@ func readResponseBody(req *http.Request, resp *http.Response) string {
 
 		if saveOutput == true {
 			// TODO(dfc) handle Content-Disposition: attachment
-			// TODO(dfc) handle the case where someone calls
-			// httpstat -O http://example.com/
 			filename = path.Base(req.URL.RequestURI())
+
+			//Save `http://example.com:4321/` to `example.com`
+			if filename == "/" {
+				host, _, err := net.SplitHostPort(req.URL.Host)
+				if err != nil {
+					host = req.URL.Host
+				}
+				filename = host
+			}
 		}
 
 		var err error
