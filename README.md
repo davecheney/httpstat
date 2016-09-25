@@ -22,18 +22,12 @@ $ httpstat https://example.com/
 
 ## TODO
 
-The big ticket features which are missing at this point are:
+This project is aiming for a 1.0 release on the 3rd of October. Open issues for this release are tagged with [this milestone](https://github.com/davecheney/httpstat/milestone/1).
 
-- ~~support for https; this involves negotating the handshake before sending the request, adjusting the various timing points, and using the alternative template.~~ done, thanks @freeformz
-- ~~detect when `httpstat` is being piped to a file or other not tty device and disable coloured output.~~ done, thanks @amy
-- support for more CURL flags, like `-H HEADER` and `-X METHOD`.
-- spool response.Body to a temporary file.
-- ~~Sort response headers intelligently, #18.~~
-- ~~Support curl's `-L` flag to follow redirects, #23.~~
-- Handle urls without a scheme, #26
+Any open issue not tagged for the [stable release milestone](https://github.com/davecheney/httpstat/milestone/1) will be addressed after the 1.0 release.
 
 ## Contributing
 
 Bug reports and feature requests are welcome.
 
-Pull requests are most welcome, but if the feature is not on the TODO list, please open an issue to discuss the feature before slinging code. Thank you.
+Pull requests are most welcome, but if the feature is not on the TODO list or release milestone, please open an issue to discuss the feature before slinging code. Thank you.
