@@ -64,8 +64,13 @@ var (
 	saveOutput      bool
 	outputFile      string
 
+	// number of redirects followed
+	redirectsFollowed int
+
 	usage = fmt.Sprintf("usage: %s URL", os.Args[0])
 )
+
+const maxRedirects = 10
 
 func init() {
 	flag.StringVar(&httpMethod, "X", "GET", "HTTP method to use")
@@ -96,7 +101,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("could not parse url %q: %v", args[0], err)
 	}
-
 	visit(url)
 }
 
@@ -259,6 +263,12 @@ func visit(url *url.URL) {
 			}
 			log.Fatalf("unable to follow redirect: %v", err)
 		}
+
+		redirectsFollowed++
+		if redirectsFollowed > maxRedirects {
+			log.Fatalf("maximum number of redirects (%d) followed\n", maxRedirects)
+		}
+
 		visit(loc)
 	}
 }
