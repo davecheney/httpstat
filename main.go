@@ -60,6 +60,8 @@ var (
 	onlyHeader      bool
 	insecure        bool
 	httpHeaders     headers
+	saveOutput      bool
+	outputFile      string
 
 	usage = fmt.Sprintf("usage: %s URL", os.Args[0])
 )
@@ -71,6 +73,9 @@ func init() {
 	flag.BoolVar(&onlyHeader, "I", false, "don't read body of request")
 	flag.BoolVar(&insecure, "k", false, "allow insecure SSL connections")
 	flag.Var(&httpHeaders, "H", "HTTP Header(s) to set. Can be used multiple times. -H 'Accept:...' -H 'Range:....'")
+	flag.BoolVar(&saveOutput, "O", false, "Save body as remote filename")
+	flag.StringVar(&outputFile, "o", "", "output file for body")
+
 	flag.Usage = func() {
 		os.Stderr.WriteString(usage + "\n")
 		flag.PrintDefaults()
@@ -180,8 +185,9 @@ func visit(url *url.URL) {
 	}
 
 	t5 := time.Now() // after read response
-	bodyMsg := readResponseBody(resp)
+	bodyMsg := readResponseBody(req, resp)
 	resp.Body.Close()
+
 	t6 := time.Now() // after read body
 
 	// print status line and headers
@@ -271,16 +277,42 @@ func createBody(body string) io.Reader {
 // readResponseBody consumes the body of the response.
 // readResponseBody returns an informational message about the
 // disposition of the response body's contents.
-func readResponseBody(resp *http.Response) string {
+func readResponseBody(req *http.Request, resp *http.Response) string {
 	// TODO(dfc) do not process body if status code is in the 30x range
 
 	// TODO(dfc) if we issued a HEAD request, there is no body to process.
 
-	if _, err := io.Copy(ioutil.Discard, resp.Body); err != nil {
+	var (
+		err     error
+		fp      io.Writer
+		bodyMsg string
+	)
+
+	if saveOutput == true || outputFile != "" {
+		var filename string
+
+		if saveOutput == true {
+			parts := strings.Split(req.URL.RequestURI(), "/")
+			filename = parts[len(parts)-1]
+		} else {
+			filename = outputFile
+		}
+
+		fp, err = os.Create(filename)
+		if err != nil {
+			log.Fatalf("unable to create file %s", outputFile)
+		}
+		bodyMsg = color.CyanString("Body read")
+	} else {
+		fp = ioutil.Discard
+		bodyMsg = color.CyanString("Body discarded")
+	}
+
+	if _, err := io.Copy(fp, resp.Body); err != nil {
 		log.Fatalf("failed to read response body: %v", err)
 	}
 
-	return color.CyanString("Body discarded")
+	return bodyMsg
 }
 
 type headers []string
