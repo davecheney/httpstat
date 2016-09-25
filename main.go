@@ -130,6 +130,7 @@ func visit(url *url.URL) {
 	if err != nil {
 		log.Fatalf("unable to connect to host %vv %v", raddr, err)
 	}
+	fmt.Printf("\n%s%s\n", color.GreenString("Connected to "), color.CyanString(raddr.String()))
 
 	var t2 time.Time // after connect, before TLS handshake
 	if scheme == "https" {
