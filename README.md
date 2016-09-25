@@ -16,6 +16,15 @@ $ go get -u github.com/davecheney/httpstat
 ```
 $ httpstat https://example.com/
 ```
+## Features
+
+- Windows/BSD/Linux supported.
+- HTTP and HTTPS are supported, for self signed certificates use `-k`.
+- Skip timing the body of a response with `-I`.
+- Follow 30x redirects with `-L`.
+- Change HTTP method with `-X METHOD`.
+- Provide a `PUT` or `POST` request body with `-d string`.
+
 ## We don't need no stinking curl
 
 `httpstat.py` is a wrapper around `curl(1)`, which is all fine and good, but what if you don't have `curl(1)` or `python(1)` installed?
