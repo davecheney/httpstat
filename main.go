@@ -85,22 +85,25 @@ func main() {
 		log.Fatalf(usage)
 	}
 
-	uri := schemify(args[0])
-
-	url, err := url.Parse(uri)
-	if err != nil {
-		log.Fatalf("could not parse url %q: %v", uri, err)
-	}
+	url := parseURL(args[0])
 
 	visit(url)
 }
 
+func parseURL(uri string) *url.URL {
+	url, err := url.Parse(schemify(uri))
+	if err != nil {
+		log.Fatalf("could not parse url %q: %v", uri, err)
+	}
+	return url
+}
+
 func schemify(uri string) string {
 	if strings.Contains(uri, "://") != true {
-		if strings.HasSuffix(uri, ":80") != true {
-			return "https://" + uri
+		if strings.HasSuffix(uri, ":80") {
+			return "http://" + uri
 		}
-		return "http://" + uri
+		return "https://" + uri
 	}
 	return uri
 }
@@ -138,7 +141,6 @@ func getHostPort(url *url.URL) (string, string, string) {
 // visit visits a url and times the interaction.
 // If the response is a 30x, visit follows the redirect.
 func visit(url *url.URL) {
-
 	scheme, host, port := getHostPort(url)
 
 	t0 := time.Now() // before dns resolution
