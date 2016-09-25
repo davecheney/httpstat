@@ -105,8 +105,9 @@ func schemify(uri string) string {
 	return uri
 }
 
-func getHostPort(URLScheme, URLHost string) (string, string, string) {
-	scheme := URLScheme
+func getHostPort(url *url.URL) (string, string, string) {
+	scheme := url.Scheme
+	URLHost := url.Host
 
 	// No hostname, just a port
 	if strings.HasPrefix(URLHost, ":") {
@@ -138,7 +139,7 @@ func getHostPort(URLScheme, URLHost string) (string, string, string) {
 // If the response is a 30x, visit follows the redirect.
 func visit(url *url.URL) {
 
-	scheme, host, port := getHostPort(url.Scheme, url.Host)
+	scheme, host, port := getHostPort(url)
 
 	t0 := time.Now() // before dns resolution
 	raddr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("%s:%s", host, port))
@@ -162,7 +163,6 @@ func visit(url *url.URL) {
 			InsecureSkipVerify: insecure,
 		})
 		if err := c.Handshake(); err != nil {
-
 			log.Fatalf("unable to negotiate TLS handshake: %v", err)
 		}
 		conn = c
@@ -180,7 +180,7 @@ func visit(url *url.URL) {
 		log.Fatalf("unable to create request: %v", err)
 	}
 
-	if err = req.Write(conn); err != nil {
+	if err := req.Write(conn); err != nil {
 		log.Fatalf("failed to write request: %v", err)
 	}
 
