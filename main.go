@@ -305,9 +305,11 @@ func readResponseBody(req *http.Request, resp *http.Response) string {
 
 		if saveOutput == true {
 			// TODO(dfc) handle Content-Disposition: attachment
-			// TODO(dfc) handle the case where someone calls
-			// httpstat -O http://example.com/
 			filename = path.Base(req.URL.RequestURI())
+
+			if filename == "/" {
+				log.Fatalf("No remote filename; specify output filename with -o to save response body")
+			}
 		}
 
 		var err error
