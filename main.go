@@ -90,6 +90,9 @@ func init() {
 }
 
 func printf(format string, a ...interface{}) (n int, err error) {
+	if color.Output == os.Stdout {
+		return fmt.Printf(format, a...)
+	}
 	return fmt.Fprintf(color.Output, format, a...)
 }
 
