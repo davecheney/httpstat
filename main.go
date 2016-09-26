@@ -89,6 +89,13 @@ func init() {
 	}
 }
 
+func printf(format string, a ...interface{}) (n int, err error) {
+	if color.Output == os.Stdout {
+		return fmt.Printf(format, a...)
+	}
+	return fmt.Fprintf(color.Output, format, a...)
+}
+
 func main() {
 	flag.Parse()
 
@@ -153,7 +160,7 @@ func visit(url *url.URL) {
 	if err != nil {
 		log.Fatalf("unable to connect to host %vv %v", raddr, err)
 	}
-	fmt.Printf("\n%s%s\n", color.GreenString("Connected to "), color.CyanString(raddr.String()))
+	printf("\n%s%s\n", color.GreenString("Connected to "), color.CyanString(raddr.String()))
 
 	var t2 time.Time // after connect, before TLS handshake
 	if scheme == "https" {
@@ -197,7 +204,7 @@ func visit(url *url.URL) {
 	t6 := time.Now() // after read body
 
 	// print status line and headers
-	fmt.Printf("\n%s%s%s\n", color.GreenString("HTTP"), grayscale(14)("/"), color.CyanString("%d.%d %s", resp.ProtoMajor, resp.ProtoMinor, resp.Status))
+	printf("\n%s%s%s\n", color.GreenString("HTTP"), grayscale(14)("/"), color.CyanString("%d.%d %s", resp.ProtoMajor, resp.ProtoMinor, resp.Status))
 
 	names := make([]string, 0, len(resp.Header))
 	for k := range resp.Header {
@@ -205,11 +212,11 @@ func visit(url *url.URL) {
 	}
 	sort.Sort(headers(names))
 	for _, k := range names {
-		fmt.Println(grayscale(14)(k+":"), color.CyanString(strings.Join(resp.Header[k], ",")))
+		printf("%s %s\n", grayscale(14)(k+":"), color.CyanString(strings.Join(resp.Header[k], ",")))
 	}
 
 	if bodyMsg != "" {
-		fmt.Printf("\n%s\n", bodyMsg)
+		printf("\n%s\n", bodyMsg)
 	}
 
 	fmta := func(d time.Duration) string {
@@ -230,7 +237,7 @@ func visit(url *url.URL) {
 
 	switch scheme {
 	case "https":
-		fmt.Printf(colorize(HTTPS_TEMPLATE),
+		printf(colorize(HTTPS_TEMPLATE),
 			fmta(t1.Sub(t0)), // dns lookup
 			fmta(t2.Sub(t1)), // tcp connection
 			fmta(t3.Sub(t2)), // tls handshake
@@ -243,7 +250,7 @@ func visit(url *url.URL) {
 			fmtb(t6.Sub(t0)), // total
 		)
 	case "http":
-		fmt.Printf(colorize(HTTP_TEMPLATE),
+		printf(colorize(HTTP_TEMPLATE),
 			fmta(t1.Sub(t0)), // dns lookup
 			fmta(t3.Sub(t1)), // tcp connection
 			fmta(t5.Sub(t3)), // server processing
@@ -313,11 +320,12 @@ func readResponseBody(req *http.Request, resp *http.Response) string {
 			}
 		}
 
-		var err error
-		w, err = os.Create(filename)
+		f, err := os.Create(filename)
 		if err != nil {
 			log.Fatalf("unable to create file %s", outputFile)
 		}
+		defer f.Close()
+		w = f
 		msg = color.CyanString("Body read")
 	}
 
