@@ -280,7 +280,7 @@ func visit(url *url.URL) {
 			fmtb(t6.Sub(t0)), // total
 		)
 	case "http":
-		print(colorize(HTTPTemplate),
+		printf(colorize(HTTPTemplate),
 			fmta(t1.Sub(t0)), // dns lookup
 			fmta(t3.Sub(t1)), // tcp connection
 			fmta(t5.Sub(t3)), // server processing
