@@ -296,13 +296,13 @@ func createBody(body string) io.Reader {
 	return strings.NewReader(body)
 }
 
-// getFilenameFromHeader tries to automatically determine the output filename,
+// getFilenameFromHeaders tries to automatically determine the output filename,
 // when saving to disk, based on the Content-Disposition header.
 // If the header is not present, or it does not contain enough information to
 // determine which filename to use, this function returns "".
-func getFilenameFromHeader(header http.Header) string {
+func getFilenameFromHeaders(headers http.Header) string {
 	// if the Content-Disposition header is set parse it
-	if hdr := header.Get("Content-Disposition"); hdr != "" {
+	if hdr := headers.Get("Content-Disposition"); hdr != "" {
 		// pull the media type, and subsequent params, from
 		// the body of the header field
 		mt, params, err := mime.ParseMediaType(hdr)
@@ -336,7 +336,7 @@ func readResponseBody(req *http.Request, resp *http.Response) string {
 		if saveOutput == true {
 			// try to get the filename from the Content-Disposition header
 			// otherwise fall back to the RequestURI
-			if filename = getFilenameFromHeader(resp.Header); filename == "" {
+			if filename = getFilenameFromHeaders(resp.Header); filename == "" {
 				filename = path.Base(req.URL.RequestURI())
 			}
 
