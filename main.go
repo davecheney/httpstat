@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/fatih/color"
+	"net"
 )
 
 const (
@@ -174,6 +175,11 @@ func getHostPort(url *url.URL) (string, string, string) {
 func visit(url *url.URL) {
 	scheme, host, port := getHostPort(url)
 
+	host, _, err := net.SplitHostPort(url.Host)
+	if err != nil {
+		host = url.Host
+	}
+
 	var t0, t1, t2, t3, t4 time.Time
 
 	trace := &httptrace.ClientTrace{
@@ -216,7 +222,10 @@ func visit(url *url.URL) {
 
 	tr := &http.Transport{}
 	if insecure {
-		tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+		tr.TLSClientConfig = &tls.Config{
+			ServerName:         host,
+			InsecureSkipVerify: true,
+		}
 	}
 
 	client := &http.Client{Transport: tr}
