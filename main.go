@@ -23,7 +23,7 @@ import (
 )
 
 const (
-	HTTPS_TEMPLATE = `` +
+	HTTPSTemplate = `` +
 		`  DNS Lookup   TCP Connection   TLS Handshake   Server Processing   Content Transfer` + "\n" +
 		`[%s  |     %s  |    %s  |        %s  |       %s  ]` + "\n" +
 		`            |                |               |                   |                  |` + "\n" +
@@ -33,7 +33,7 @@ const (
 		`                                                     starttransfer:%s        |` + "\n" +
 		`                                                                                total:%s` + "\n"
 
-	HTTP_TEMPLATE = `` +
+	HTTPTemplate = `` +
 		`   DNS Lookup   TCP Connection   Server Processing   Content Transfer` + "\n" +
 		`[ %s  |     %s  |        %s  |       %s  ]` + "\n" +
 		`             |                |                   |                  |` + "\n" +
@@ -107,11 +107,17 @@ func main() {
 		log.Fatal("must supply post body using -d when POST or PUT is used")
 	}
 
-	url, err := url.Parse(args[0])
-	if err != nil {
-		log.Fatalf("could not parse url %q: %v", args[0], err)
-	}
+	url := parseURL(args[0])
+
 	visit(url)
+}
+
+func parseURL(uri string) *url.URL {
+	url, err := url.Parse(schemify(uri))
+	if err != nil {
+		log.Fatalf("could not parse url %q: %v", uri, err)
+	}
+	return url
 }
 
 func headerKeyValue(h string) (string, string) {
@@ -122,30 +128,50 @@ func headerKeyValue(h string) (string, string) {
 	return strings.TrimRight(h[:i], " "), strings.TrimLeft(h[i:], " :")
 }
 
+func schemify(uri string) string {
+	if !strings.Contains(uri, "://") {
+		if strings.HasSuffix(uri, ":80") {
+			return "http://" + uri
+		}
+		return "https://" + uri
+	}
+	return uri
+}
+
+func getHostPort(url *url.URL) (string, string, string) {
+	scheme := url.Scheme
+	URLHost := url.Host
+
+	// No hostname, just a port
+	if strings.HasPrefix(URLHost, ":") {
+		URLHost = "localhost" + URLHost
+	}
+
+	host, port, err := net.SplitHostPort(URLHost)
+	if err != nil {
+		host = URLHost
+	}
+
+	switch scheme {
+	case "https":
+		if port == "" {
+			port = "443"
+		}
+	case "http":
+		if port == "" {
+			port = "80"
+		}
+	default:
+		log.Fatalf("unsupported url scheme %q", scheme)
+	}
+
+	return scheme, host, port
+}
+
 // visit visits a url and times the interaction.
 // If the response is a 30x, visit follows the redirect.
 func visit(url *url.URL) {
-	scheme := url.Scheme
-	hostport := url.Host
-	host, port := func() (string, string) {
-		host, port, err := net.SplitHostPort(hostport)
-		if err != nil {
-			host = hostport
-		}
-		switch scheme {
-		case "https":
-			if port == "" {
-				port = "443"
-			}
-		case "http":
-			if port == "" {
-				port = "80"
-			}
-		default:
-			log.Fatalf("unsupported url scheme %q", scheme)
-		}
-		return host, port
-	}()
+	scheme, host, port := getHostPort(url)
 
 	t0 := time.Now() // before dns resolution
 	raddr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("%s:%s", host, port))
@@ -157,7 +183,7 @@ func visit(url *url.URL) {
 	t1 := time.Now() // after dns resolution, before connect
 	conn, err = net.DialTCP("tcp", nil, raddr)
 	if err != nil {
-		log.Fatalf("unable to connect to host %vv %v", raddr, err)
+		log.Fatalf("unable to connect to host %v; %v", raddr, err)
 	}
 	printf("\n%s%s\n", color.GreenString("Connected to "), color.CyanString("%s", raddr.String()))
 
@@ -241,7 +267,7 @@ func visit(url *url.URL) {
 
 	switch scheme {
 	case "https":
-		printf(colorize(HTTPS_TEMPLATE),
+		printf(colorize(HTTPSTemplate),
 			fmta(t1.Sub(t0)), // dns lookup
 			fmta(t2.Sub(t1)), // tcp connection
 			fmta(t3.Sub(t2)), // tls handshake
@@ -254,7 +280,7 @@ func visit(url *url.URL) {
 			fmtb(t6.Sub(t0)), // total
 		)
 	case "http":
-		printf(colorize(HTTP_TEMPLATE),
+		print(colorize(HTTPTemplate),
 			fmta(t1.Sub(t0)), // dns lookup
 			fmta(t3.Sub(t1)), // tcp connection
 			fmta(t5.Sub(t3)), // server processing
