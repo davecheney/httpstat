@@ -183,7 +183,12 @@ func visit(url *url.URL) {
 		log.Fatalf("unable to create request: %v", err)
 	}
 	for _, h := range httpHeaders {
-		req.Header.Add(headerKeyValue(h))
+		k, v := headerKeyValue(h)
+		if strings.EqualFold(k, "host") {
+			req.Host = v
+			continue
+		}
+		req.Header.Add(k, v)
 	}
 
 	if err := req.Write(conn); err != nil {
