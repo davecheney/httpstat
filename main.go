@@ -159,7 +159,7 @@ func visit(url *url.URL) {
 	if err != nil {
 		log.Fatalf("unable to connect to host %vv %v", raddr, err)
 	}
-	printf("\n%s%s\n", color.GreenString("Connected to "), color.CyanString(raddr.String()))
+	printf("\n%s%s\n", color.GreenString("Connected to "), color.CyanString("%s", raddr.String()))
 
 	var t2 time.Time // after connect, before TLS handshake
 	if scheme == "https" {
@@ -211,7 +211,7 @@ func visit(url *url.URL) {
 	}
 	sort.Sort(headers(names))
 	for _, k := range names {
-		printf("%s %s\n", grayscale(14)(k+":"), color.CyanString(strings.Join(resp.Header[k], ",")))
+		printf("%s %s\n", grayscale(14)(k+":"), color.CyanString("%s", strings.Join(resp.Header[k], ",")))
 	}
 
 	if bodyMsg != "" {
