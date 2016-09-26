@@ -4,12 +4,17 @@ go:
   - 1.7.1
   - tip
 
+os:
+  - linux
+  - osx
+
 sudo: false
 
 install:
   - echo "skipping travis' default go get -t -v to ensure we're only using vendor/ dependencies"
 
 script:
+  - go vet $(go list ./... | grep -v "vendor")
   - go build github.com/davecheney/httpstat
   - ./httpstat http://dave.cheney.net/
   - ./httpstat http://dave.cheney.net:80/
@@ -20,3 +25,8 @@ script:
   - ./httpstat -L http://httpbin.org/redirect-to?url=https://httpbin.org/relative-redirect/1
   - ./httpstat -I http://example.com/
   - ./httpstat -I -L http://httpbin.org/redirect/1
+  - ./httpstat https://www.apple.com/
+  - ./httpstat -H Accept:\ application/vnd.heroku+json\;\ version=3 https://api.heroku.com/schema
+  - ./httpstat -O http://example.com/file && stat file
+  - ./httpstat -o custom http://example.com/file && stat custom
+  - ./httpstat -O http://httpbin.org/response-headers?Content-Disposition=attachment%3B%20filename%3dtest.json && stat test.json
