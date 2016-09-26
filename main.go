@@ -95,12 +95,11 @@ func main() {
 // If the scheme is missing, we assume it's "https" (or "http" if port 80).
 // If the host is missing, we assume it's "localhost".
 func normalizeURL(rawURL string) string {
-	if strings.Index(rawURL, "://") > -1 {
+	if strings.Contains(rawURL, "://") {
 		return rawURL
 	}
 
-	hostport := strings.Split(rawURL, ":")
-	if len(hostport) == 2 {
+	if hostport := strings.Split(rawURL, ":"); len(hostport) == 2 {
 		if hostport[0] == "" {
 			rawURL = "localhost:" + hostport[1]
 		}
