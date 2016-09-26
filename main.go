@@ -172,7 +172,7 @@ func getHostPort(url *url.URL) (string, string, string) {
 // visit visits a url and times the interaction.
 // If the response is a 30x, visit follows the redirect.
 func visit(url *url.URL) {
-	scheme, host, port := getHostPort(url)
+	scheme, host, _ := getHostPort(url)
 
 	host, _, err := net.SplitHostPort(url.Host)
 	if err != nil {
@@ -216,10 +216,10 @@ func visit(url *url.URL) {
 	req = req.WithContext(httptrace.WithClientTrace(context.Background(), trace))
 
 	tr := &http.Transport{}
-	if insecure {
+	if scheme == "https" {
 		tr.TLSClientConfig = &tls.Config{
 			ServerName:         host,
-			InsecureSkipVerify: true,
+			InsecureSkipVerify: insecure,
 		}
 	}
 
