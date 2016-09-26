@@ -43,8 +43,6 @@ const (
 )
 
 var (
-	requestBody io.Reader
-
 	grayscale = func(code int) func(string) string {
 		if color.NoColor {
 			return func(s string) string { return s }
