@@ -107,11 +107,33 @@ func main() {
 		log.Fatal("must supply post body using -d when POST or PUT is used")
 	}
 
-	url, err := url.Parse(args[0])
+	rawURL := normalizeURL(args[0])
+	url, err := url.Parse(rawURL)
 	if err != nil {
 		log.Fatalf("could not parse url %q: %v", args[0], err)
 	}
 	visit(url)
+}
+
+// normalizeURL normalizes the url input.
+// If the scheme is missing, we assume it's "https" (or "http" if port 80).
+// If the host is missing, we assume it's "localhost".
+func normalizeURL(rawURL string) string {
+	if strings.Contains(rawURL, "://") {
+		return rawURL
+	}
+
+	if hostport := strings.Split(rawURL, ":"); len(hostport) == 2 {
+		if hostport[0] == "" {
+			rawURL = "localhost:" + hostport[1]
+		}
+
+		if strings.Index(hostport[1], "80") == 0 {
+			return "http://" + rawURL
+		}
+	}
+
+	return "https://" + rawURL
 }
 
 func headerKeyValue(h string) (string, string) {
@@ -157,7 +179,7 @@ func visit(url *url.URL) {
 	t1 := time.Now() // after dns resolution, before connect
 	conn, err = net.DialTCP("tcp", nil, raddr)
 	if err != nil {
-		log.Fatalf("unable to connect to host %vv %v", raddr, err)
+		log.Fatalf("unable to connect to host %v %v", raddr, err)
 	}
 	printf("\n%s%s\n", color.GreenString("Connected to "), color.CyanString("%s", raddr.String()))
 
