@@ -99,7 +99,7 @@ func parseURL(uri string) *url.URL {
 }
 
 func schemify(uri string) string {
-	if strings.Contains(uri, "://") != true {
+	if !strings.Contains(uri, "://") {
 		if strings.HasSuffix(uri, ":80") {
 			return "http://" + uri
 		}
