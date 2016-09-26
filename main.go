@@ -314,11 +314,12 @@ func readResponseBody(req *http.Request, resp *http.Response) string {
 			filename = path.Base(req.URL.RequestURI())
 		}
 
-		var err error
-		w, err = os.Create(filename)
+		f, err := os.Create(filename)
 		if err != nil {
 			log.Fatalf("unable to create file %s", outputFile)
 		}
+		defer f.Close()
+		w = f
 		msg = color.CyanString("Body read")
 	}
 
