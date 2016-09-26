@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"mime"
 	"net"
 	"net/http"
 	"net/url"
@@ -295,6 +296,29 @@ func createBody(body string) io.Reader {
 	return strings.NewReader(body)
 }
 
+// getFilenameFromHeader tries to automatically determine the output filename,
+// when saving to disk, based on the Content-Disposition header.
+// If the header is not present, or it does not contain enough information to
+// determine which filename to use, this function returns "".
+func getFilenameFromHeader(header http.Header) string {
+	// if the Content-Disposition header is set parse it
+	if hdr := header.Get("Content-Disposition"); hdr != "" {
+		// pull the media type, and subsequent params, from
+		// the body of the header field
+		mt, params, err := mime.ParseMediaType(hdr)
+
+		// if there was no error and the media type is attachment
+		if err == nil && mt == "attachment" {
+			if filename := params["filename"]; filename != "" {
+				return filename
+			}
+		}
+	}
+
+	// return an empty string if we were unable to determine the filename
+	return ""
+}
+
 // readResponseBody consumes the body of the response.
 // readResponseBody returns an informational message about the
 // disposition of the response body's contents.
@@ -310,8 +334,11 @@ func readResponseBody(req *http.Request, resp *http.Response) string {
 		filename := outputFile
 
 		if saveOutput == true {
-			// TODO(dfc) handle Content-Disposition: attachment
-			filename = path.Base(req.URL.RequestURI())
+			// try to get the filename from the Content-Disposition header
+			// otherwise fall back to the RequestURI
+			if filename = getFilenameFromHeader(resp.Header); filename == "" {
+				filename = path.Base(req.URL.RequestURI())
+			}
 
 			if filename == "/" {
 				log.Fatalf("No remote filename; specify output filename with -o to save response body")
