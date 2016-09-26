@@ -30,3 +30,6 @@ script:
   - ./httpstat -O http://example.com/file && stat file
   - ./httpstat -o custom http://example.com/file && stat custom
   - ./httpstat -O http://httpbin.org/response-headers?Content-Disposition=attachment%3B%20filename%3dtest.json && stat test.json
+  - ./httpstat google.com
+  - ./httpstat google.com:80
+  - ./httpstat google.com:443
