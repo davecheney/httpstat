@@ -130,7 +130,8 @@ func headerKeyValue(h string) (string, string) {
 
 func schemify(uri string) string {
 	if !strings.Contains(uri, "://") {
-		if strings.HasSuffix(uri, ":80") {
+		host := strings.Split(uri, "/")[0]
+		if strings.HasSuffix(host, ":80") {
 			return "http://" + uri
 		}
 		return "https://" + uri
