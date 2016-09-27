@@ -10,6 +10,7 @@ func TestParseURL(t *testing.T) {
 		{"https://golang.org", "https://golang.org"},
 		{"https://golang.org:443/test", "https://golang.org:443/test"},
 		{"localhost:8080/test", "https://localhost:8080/test"},
+		{"localhost:80/test", "http://localhost:80/test"},
 		{"//localhost:8080/test", "https://localhost:8080/test"},
 		{"//localhost:80/test", "http://localhost:80/test"},
 	}
