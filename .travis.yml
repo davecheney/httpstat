@@ -33,3 +33,5 @@ script:
   - ./httpstat google.com
   - ./httpstat google.com:80
   - ./httpstat google.com:443
+  - ./httpstat golang.org:80/dl
+  - ./httpstat golang.org:443/dl
