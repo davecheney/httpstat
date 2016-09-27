@@ -113,9 +113,20 @@ func main() {
 }
 
 func parseURL(uri string) *url.URL {
-	url, err := url.Parse(schemify(uri))
+	if !strings.Contains(uri, "://") && !strings.HasPrefix(uri, "//") {
+		uri = "//" + uri
+	}
+
+	url, err := url.Parse(uri)
 	if err != nil {
 		log.Fatalf("could not parse url %q: %v", uri, err)
+	}
+
+	if url.Scheme == "" {
+		url.Scheme = "http"
+		if !strings.HasSuffix(url.Host, ":80") {
+			url.Scheme += "s"
+		}
 	}
 	return url
 }
@@ -126,16 +137,6 @@ func headerKeyValue(h string) (string, string) {
 		log.Fatalf("Header '%s' has invalid format, missing ':'", h)
 	}
 	return strings.TrimRight(h[:i], " "), strings.TrimLeft(h[i:], " :")
-}
-
-func schemify(uri string) string {
-	if !strings.Contains(uri, "://") {
-		if strings.HasSuffix(uri, ":80") {
-			return "http://" + uri
-		}
-		return "https://" + uri
-	}
-	return uri
 }
 
 func getHostPort(url *url.URL) (string, string, string) {
