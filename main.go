@@ -192,7 +192,7 @@ func visit(url *url.URL) {
 			}
 			t2 = time.Now()
 
-			printf("\n%s%s\n", color.GreenString("Connected to "), color.CyanString("%s", addr))
+			printf("\n%s%s\n", color.GreenString("Connected to "), color.CyanString(addr))
 		},
 		WroteRequest:         func(i httptrace.WroteRequestInfo) { t3 = time.Now() },
 		GotFirstResponseByte: func() { t4 = time.Now() },
@@ -257,7 +257,7 @@ func visit(url *url.URL) {
 	}
 	sort.Sort(headers(names))
 	for _, k := range names {
-		printf("%s %s\n", grayscale(14)(k+":"), color.CyanString("%s", strings.Join(resp.Header[k], ",")))
+		printf("%s %s\n", grayscale(14)(k+":"), color.CyanString(strings.Join(resp.Header[k], ",")))
 	}
 
 	if bodyMsg != "" {
