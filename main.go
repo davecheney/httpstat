@@ -14,6 +14,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -71,7 +72,7 @@ var (
 
 	usage = fmt.Sprintf("usage: %s URL", os.Args[0])
 
-	version = "devel" // for -v flag, updated during the release process with -ldflags -X=main.version=...
+	version = "devel" // for -v flag, updated during the release process with -ldflags=-X=main.version=...
 )
 
 const maxRedirects = 10
@@ -105,7 +106,7 @@ func main() {
 	flag.Parse()
 
 	if showVersion {
-		fmt.Println("httpstat", version)
+		fmt.Printf("%s %s (runtime: %s)\n", os.Args[0], version, runtime.Version())
 		os.Exit(0)
 	}
 
