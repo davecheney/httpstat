@@ -418,7 +418,7 @@ func readResponseBody(req *http.Request, resp *http.Response) string {
 
 		f, err := os.Create(filename)
 		if err != nil {
-			log.Fatalf("unable to create file %s", outputFile)
+			log.Fatalf("unable to create file %s", filename)
 		}
 		defer f.Close()
 		w = f
