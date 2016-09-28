@@ -110,6 +110,10 @@ func main() {
 		log.Fatal("must supply post body using -d when POST or PUT is used")
 	}
 
+	if onlyHeader {
+		httpMethod = "HEAD"
+	}
+
 	url := parseURL(args[0])
 
 	visit(url)
@@ -142,80 +146,27 @@ func headerKeyValue(h string) (string, string) {
 	return strings.TrimRight(h[:i], " "), strings.TrimLeft(h[i:], " :")
 }
 
-func getHostPort(url *url.URL) (string, string, string) {
-	scheme := url.Scheme
-	URLHost := url.Host
-
-	// No hostname, just a port
-	if strings.HasPrefix(URLHost, ":") {
-		URLHost = "localhost" + URLHost
-	}
-
-	host, port, err := net.SplitHostPort(URLHost)
-	if err != nil {
-		host = URLHost
-	}
-
-	switch scheme {
-	case "https":
-		if port == "" {
-			port = "443"
-		}
-	case "http":
-		if port == "" {
-			port = "80"
-		}
-	default:
-		log.Fatalf("unsupported url scheme %q", scheme)
-	}
-
-	return scheme, host, port
-}
-
 // visit visits a url and times the interaction.
 // If the response is a 30x, visit follows the redirect.
 func visit(url *url.URL) {
-	scheme, host, _ := getHostPort(url)
-
-	host, _, err := net.SplitHostPort(url.Host)
-	if err != nil {
-		host = url.Host
-	}
+	req := newRequest(httpMethod, url, postBody)
 
 	var t0, t1, t2, t3, t4 time.Time
 
 	trace := &httptrace.ClientTrace{
-		DNSStart: func(i httptrace.DNSStartInfo) { t0 = time.Now() },
-		DNSDone:  func(i httptrace.DNSDoneInfo) { t1 = time.Now() },
+		DNSStart: func(_ httptrace.DNSStartInfo) { t0 = time.Now() },
+		DNSDone:  func(_ httptrace.DNSDoneInfo) { t1 = time.Now() },
 		ConnectDone: func(net, addr string, err error) {
 			if err != nil {
-				log.Fatalf("unable to connect to host %v %v", addr, err)
+				log.Fatalf("unable to connect to host %v: %v", addr, err)
 			}
 			t2 = time.Now()
 
 			printf("\n%s%s\n", color.GreenString("Connected to "), color.CyanString(addr))
 		},
-		WroteRequest:         func(i httptrace.WroteRequestInfo) { t3 = time.Now() },
+		WroteRequest:         func(_ httptrace.WroteRequestInfo) { t3 = time.Now() },
 		GotFirstResponseByte: func() { t4 = time.Now() },
 	}
-
-	if onlyHeader {
-		httpMethod = "HEAD"
-	}
-
-	req, err := http.NewRequest(httpMethod, url.String(), createBody(postBody))
-	if err != nil {
-		log.Fatalf("unable to create request: %v", err)
-	}
-	for _, h := range httpHeaders {
-		k, v := headerKeyValue(h)
-		if strings.EqualFold(k, "host") {
-			req.Host = v
-			continue
-		}
-		req.Header.Add(k, v)
-	}
-
 	req = req.WithContext(httptrace.WithClientTrace(context.Background(), trace))
 
 	proxyURL, err := http.ProxyFromEnvironment(req)
@@ -226,7 +177,14 @@ func visit(url *url.URL) {
 	tr := &http.Transport{
 		Proxy: http.ProxyURL(proxyURL),
 	}
-	if scheme == "https" {
+
+	switch url.Scheme {
+	case "https":
+		host, _, err := net.SplitHostPort(url.Host)
+		if err != nil {
+			host = url.Host
+		}
+
 		tr.TLSClientConfig = &tls.Config{
 			ServerName:         host,
 			InsecureSkipVerify: insecure,
@@ -291,7 +249,7 @@ func visit(url *url.URL) {
 
 	fmt.Println()
 
-	switch scheme {
+	switch url.Scheme {
 	case "https":
 		printf(colorize(HTTPSTemplate),
 			fmta(t1.Sub(t0)), // dns lookup
@@ -330,7 +288,7 @@ func visit(url *url.URL) {
 
 		redirectsFollowed++
 		if redirectsFollowed > maxRedirects {
-			log.Fatalf("maximum number of redirects (%d) followed\n", maxRedirects)
+			log.Fatalf("maximum number of redirects (%d) followed", maxRedirects)
 		}
 
 		visit(loc)
@@ -339,6 +297,22 @@ func visit(url *url.URL) {
 
 func isRedirect(resp *http.Response) bool {
 	return resp.StatusCode > 299 && resp.StatusCode < 400
+}
+
+func newRequest(method string, url *url.URL, body string) *http.Request {
+	req, err := http.NewRequest(method, url.String(), createBody(body))
+	if err != nil {
+		log.Fatalf("unable to create request: %v", err)
+	}
+	for _, h := range httpHeaders {
+		k, v := headerKeyValue(h)
+		if strings.EqualFold(k, "host") {
+			req.Host = v
+			continue
+		}
+		req.Header.Add(k, v)
+	}
+	return req
 }
 
 func createBody(body string) io.Reader {
