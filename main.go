@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"crypto/tls"
-	"flag"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -24,6 +24,7 @@ import (
 	"golang.org/x/net/http2"
 
 	"github.com/fatih/color"
+	"github.com/jessevdk/go-flags"
 )
 
 const (
@@ -57,44 +58,75 @@ var (
 		}
 	}
 
-	// Command line flags.
-	httpMethod      string
-	postBody        string
-	followRedirects bool
-	onlyHeader      bool
-	insecure        bool
-	httpHeaders     headers
-	saveOutput      bool
-	outputFile      string
-	showVersion     bool
-
 	// number of redirects followed
 	redirectsFollowed int
 
 	usage = fmt.Sprintf("usage: %s URL", os.Args[0])
 
 	version = "devel" // for -v flag, updated during the release process with -ldflags=-X=main.version=...
+
+	args *binArgs
 )
 
-const maxRedirects = 10
-
-func init() {
-	flag.StringVar(&httpMethod, "X", "GET", "HTTP method to use")
-	flag.StringVar(&postBody, "d", "", "the body of a POST or PUT request")
-	flag.BoolVar(&followRedirects, "L", false, "follow 30x redirects")
-	flag.BoolVar(&onlyHeader, "I", false, "don't read body of request")
-	flag.BoolVar(&insecure, "k", false, "allow insecure SSL connections")
-	flag.Var(&httpHeaders, "H", "HTTP Header(s) to set. Can be used multiple times. -H 'Accept:...' -H 'Range:....'")
-	flag.BoolVar(&saveOutput, "O", false, "Save body as remote filename")
-	flag.StringVar(&outputFile, "o", "", "output file for body")
-	flag.BoolVar(&showVersion, "v", false, "print version number")
-
-	flag.Usage = func() {
-		os.Stderr.WriteString(usage + "\n")
-		flag.PrintDefaults()
-		os.Exit(2)
-	}
+type binArgs struct {
+	PostBody        string  `short:"d" long:"data" description:"the body of a POST or PUT request"`
+	HTTPHeaders     headers `short:"H" long:"header" description:"HTTP Header(s) to set. Can be used multiple times -H 'Accept:...' -H 'Range...'"`
+	OnlyHeader      bool    `short:"I" long:"head" description:"don't read the body of the request"`
+	Insecure        bool    `short:"k" long:"insecure" description:"allow insecure TLS connections"`
+	FollowRedirects bool    `short:"L" long:"location" description:"follow 30x redirects"`
+	OutputFile      string  `short:"o" long:"output" description:"output file for body"`
+	SaveOutput      bool    `short:"O" long:"remote-name" description:"Save body as remote filename"`
+	Version         bool    `short:"V" long:"version" description:"print version to stdout and exit"`
+	HTTPMethod      string  `short:"X" long:"request" default:"GET" description:"HTTP method to use"`
+	URL             *url.URL
+	Args            struct {
+		URL string `positional-arg-name:"<url>"`
+	} `positional-args:"yes"`
 }
+
+// parse takes a []string as the list of CLi parameters
+// if this is nil it defaults to os.Args
+func (a *binArgs) parse(args []string) (string, error) {
+	if args == nil {
+		args = os.Args
+	}
+
+	// accept -h / --help for help (usage) output
+	// recognize '--' as indicating the end of arguments being parsed
+	p := flags.NewParser(a, flags.HelpFlag|flags.PassDoubleDash)
+
+	_, err := p.ParseArgs(args[1:])
+
+	// determine if there was a parsing error
+	// unfortunately, the help message is returned as an error
+	if err != nil {
+		// determine whether this was a help message by doing a type
+		// assertion of err to *flags.Error and check the error type
+		// if it was a help message, do not return an error
+		if errType, ok := err.(*flags.Error); ok {
+			if errType.Type == flags.ErrHelp {
+				return err.Error(), nil
+			}
+		}
+
+		return "", err
+	}
+
+	if a.Version {
+		out := fmt.Sprintf("%s %s (runtime: %s)\n", args[0], version, runtime.Version())
+		return out, nil
+	}
+
+	if a.Args.URL == "" {
+		return "", errors.New("a valid URL must be provided, see the -h flag for more information")
+	}
+
+	a.URL = parseURL(a.Args.URL)
+
+	return "", nil
+}
+
+const maxRedirects = 10
 
 func printf(format string, a ...interface{}) (n int, err error) {
 	if color.Output == os.Stdout {
@@ -104,25 +136,27 @@ func printf(format string, a ...interface{}) (n int, err error) {
 }
 
 func main() {
-	flag.Parse()
+	args = &binArgs{}
 
-	if showVersion {
-		fmt.Printf("%s %s (runtime: %s)\n", os.Args[0], version, runtime.Version())
+	out, err := args.parse(nil)
+
+	// print any parsing errors to stderr
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	// print any usage messages to stdout
+	if out != "" {
+		fmt.Print(out)
 		os.Exit(0)
 	}
 
-	args := flag.Args()
-	if len(args) != 1 {
-		flag.Usage()
-	}
-
-	if (httpMethod == "POST" || httpMethod == "PUT") && postBody == "" {
+	if (args.HTTPMethod == "POST" || args.HTTPMethod == "PUT") && args.PostBody == "" {
 		log.Fatal("must supply post body using -d when POST or PUT is used")
 	}
 
-	url := parseURL(args[0])
-
-	visit(url)
+	visit(args.URL)
 }
 
 func parseURL(uri string) *url.URL {
@@ -209,15 +243,15 @@ func visit(url *url.URL) {
 		GotFirstResponseByte: func() { t4 = time.Now() },
 	}
 
-	if onlyHeader {
-		httpMethod = "HEAD"
+	if args.OnlyHeader {
+		args.HTTPMethod = "HEAD"
 	}
 
-	req, err := http.NewRequest(httpMethod, url.String(), createBody(postBody))
+	req, err := http.NewRequest(args.HTTPMethod, url.String(), createBody(args.PostBody))
 	if err != nil {
 		log.Fatalf("unable to create request: %v", err)
 	}
-	for _, h := range httpHeaders {
+	for _, h := range args.HTTPHeaders {
 		k, v := headerKeyValue(h)
 		if strings.EqualFold(k, "host") {
 			req.Host = v
@@ -239,7 +273,7 @@ func visit(url *url.URL) {
 	if scheme == "https" {
 		tr.TLSClientConfig = &tls.Config{
 			ServerName:         host,
-			InsecureSkipVerify: insecure,
+			InsecureSkipVerify: args.Insecure,
 		}
 
 		// Because we create a custom TLSClientConfig, we have to opt-in to HTTP/2.
@@ -253,7 +287,7 @@ func visit(url *url.URL) {
 	client := &http.Client{
 		Transport: tr,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			if !followRedirects {
+			if !args.FollowRedirects {
 				return http.ErrUseLastResponse
 			}
 			if len(via) >= maxRedirects {
@@ -332,7 +366,7 @@ func visit(url *url.URL) {
 		)
 	}
 
-	if followRedirects && isRedirect(resp) {
+	if args.FollowRedirects && isRedirect(resp) {
 		loc, err := resp.Location()
 		if err != nil {
 			if err == http.ErrNoLocation {
@@ -401,10 +435,10 @@ func readResponseBody(req *http.Request, resp *http.Response) string {
 	w := ioutil.Discard
 	msg := color.CyanString("Body discarded")
 
-	if saveOutput == true || outputFile != "" {
-		filename := outputFile
+	if args.SaveOutput == true || args.OutputFile != "" {
+		filename := args.OutputFile
 
-		if saveOutput == true {
+		if args.SaveOutput == true {
 			// try to get the filename from the Content-Disposition header
 			// otherwise fall back to the RequestURI
 			if filename = getFilenameFromHeaders(resp.Header); filename == "" {
@@ -418,7 +452,7 @@ func readResponseBody(req *http.Request, resp *http.Response) string {
 
 		f, err := os.Create(filename)
 		if err != nil {
-			log.Fatalf("unable to create file %s", outputFile)
+			log.Fatalf("unable to create file %s", filename)
 		}
 		defer f.Close()
 		w = f
