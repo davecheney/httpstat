@@ -36,3 +36,4 @@ script:
   - ./httpstat google.com:443
   - ./httpstat golang.org:80/dl
   - ./httpstat golang.org:443/dl
+  - ./httpstat https://http2.akamai.com/
