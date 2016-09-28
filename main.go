@@ -243,13 +243,10 @@ func visit(url *url.URL) {
 	client := &http.Client{
 		Transport: tr,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			if !followRedirects {
-				return http.ErrUseLastResponse
-			}
-			if len(via) >= maxRedirects {
+			if redirectsFollowed >= maxRedirects {
 				return fmt.Errorf("stopped after %d redirects", maxRedirects)
 			}
-			return nil
+			return http.ErrUseLastResponse
 		},
 	}
 
