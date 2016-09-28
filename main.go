@@ -19,8 +19,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fatih/color"
 	"net"
+
+	"github.com/fatih/color"
 )
 
 const (
@@ -224,7 +225,18 @@ func visit(url *url.URL) {
 		}
 	}
 
-	client := &http.Client{Transport: tr}
+	client := &http.Client{
+		Transport: tr,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			if !followRedirects {
+				return http.ErrUseLastResponse
+			}
+			if len(via) >= maxRedirects {
+				return fmt.Errorf("stopped after %d redirects", maxRedirects)
+			}
+			return nil
+		},
+	}
 
 	resp, err := client.Do(req)
 
