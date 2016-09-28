@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"flag"
 	"fmt"
 	"io"
@@ -63,6 +64,10 @@ var (
 	redirectsFollowed int
 
 	version = "devel" // for -v flag, updated during the release process with -ldflags=-X=main.version=...
+
+	clientCertFile string
+	clientKeyFile  string
+	clientCAFile   string
 )
 
 const maxRedirects = 10
@@ -77,6 +82,10 @@ func init() {
 	flag.BoolVar(&saveOutput, "O", false, "Save body as remote filename")
 	flag.StringVar(&outputFile, "o", "", "output file for body")
 	flag.BoolVar(&showVersion, "v", false, "print version number")
+
+	flag.StringVar(&clientCertFile, "cert", "", "client cert file for tls config")
+	flag.StringVar(&clientKeyFile, "key", "", "client key file for tls config")
+	flag.StringVar(&clientCAFile, "ca", "", "ca file for tls config")
 
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "usage: %s URL\n", os.Args[0])
@@ -188,6 +197,29 @@ func visit(url *url.URL) {
 		tr.TLSClientConfig = &tls.Config{
 			ServerName:         host,
 			InsecureSkipVerify: insecure,
+		}
+
+		var (
+			clientCert tls.Certificate
+			caCert     []byte
+		)
+
+		if clientCertFile != "" && clientKeyFile != "" {
+			clientCert, err = tls.LoadX509KeyPair(clientCertFile, clientKeyFile)
+			if err != nil {
+				log.Fatalf("unable to load client cert and key pair: %v", err)
+			}
+			tr.TLSClientConfig.Certificates = []tls.Certificate{clientCert}
+		}
+
+		if clientCAFile != "" {
+			caCert, err = ioutil.ReadFile(clientCAFile)
+			if err != nil {
+				log.Fatalf("failed to read client ca file: %v", err)
+			}
+			certPool := x509.NewCertPool()
+			certPool.AppendCertsFromPEM(caCert)
+			tr.TLSClientConfig.RootCAs = certPool
 		}
 
 		// Because we create a custom TLSClientConfig, we have to opt-in to HTTP/2.
