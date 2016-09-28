@@ -48,15 +48,6 @@ const (
 )
 
 var (
-	grayscale = func(code int) func(string) string {
-		if color.NoColor {
-			return func(s string) string { return s }
-		}
-		return func(s string) string {
-			return fmt.Sprintf("\x1b[;38;5;%dm%s\x1b[0m", code+232, s)
-		}
-	}
-
 	// Command line flags.
 	httpMethod      string
 	postBody        string
@@ -96,6 +87,10 @@ func init() {
 
 func printf(format string, a ...interface{}) (n int, err error) {
 	return fmt.Fprintf(color.Output, format, a...)
+}
+
+func grayscale(code color.Attribute) func(string, ...interface{}) string {
+	return color.New(code + 232).SprintfFunc()
 }
 
 func main() {
