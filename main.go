@@ -64,11 +64,14 @@ var (
 	httpHeaders     headers
 	saveOutput      bool
 	outputFile      string
+	showVersion     bool
 
 	// number of redirects followed
 	redirectsFollowed int
 
 	usage = fmt.Sprintf("usage: %s URL", os.Args[0])
+
+	version = "devel" // for -v flag, updated during the release process with -ldflags -X=main.version=...
 )
 
 const maxRedirects = 10
@@ -82,6 +85,7 @@ func init() {
 	flag.Var(&httpHeaders, "H", "HTTP Header(s) to set. Can be used multiple times. -H 'Accept:...' -H 'Range:....'")
 	flag.BoolVar(&saveOutput, "O", false, "Save body as remote filename")
 	flag.StringVar(&outputFile, "o", "", "output file for body")
+	flag.BoolVar(&showVersion, "v", false, "print version number")
 
 	flag.Usage = func() {
 		os.Stderr.WriteString(usage + "\n")
@@ -99,6 +103,11 @@ func printf(format string, a ...interface{}) (n int, err error) {
 
 func main() {
 	flag.Parse()
+
+	if showVersion {
+		fmt.Println("httpstat", version)
+		os.Exit(0)
+	}
 
 	args := flag.Args()
 	if len(args) != 1 {
