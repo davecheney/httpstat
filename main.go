@@ -89,10 +89,6 @@ func printf(format string, a ...interface{}) (n int, err error) {
 	return fmt.Fprintf(color.Output, format, a...)
 }
 
-func grayscale(code color.Attribute) func(string, ...interface{}) string {
-	return color.New(code + 232).SprintfFunc()
-}
-
 func main() {
 	flag.Parse()
 
@@ -193,7 +189,7 @@ func visit(url *url.URL) {
 			}
 			t2 = time.Now()
 
-			printf("\n%s%s\n", color.GreenString("Connected to "), color.CyanString(addr))
+			printf("\n%s%s\n", color.GreenString("Connected to "), color.BlueString(addr))
 		},
 		WroteRequest:         func(i httptrace.WroteRequestInfo) { t3 = time.Now() },
 		GotFirstResponseByte: func() { t4 = time.Now() },
@@ -260,7 +256,7 @@ func visit(url *url.URL) {
 	t5 := time.Now() // after read body
 
 	// print status line and headers
-	printf("\n%s%s%s\n", color.GreenString("HTTP"), grayscale(14)("/"), color.CyanString("%d.%d %s", resp.ProtoMajor, resp.ProtoMinor, resp.Status))
+	printf("\n%s%s%s\n", color.GreenString("HTTP"), "/", color.BlueString("%d.%d %s", resp.ProtoMajor, resp.ProtoMinor, resp.Status))
 
 	names := make([]string, 0, len(resp.Header))
 	for k := range resp.Header {
@@ -268,7 +264,7 @@ func visit(url *url.URL) {
 	}
 	sort.Sort(headers(names))
 	for _, k := range names {
-		printf("%s %s\n", grayscale(14)(k+":"), color.CyanString(strings.Join(resp.Header[k], ",")))
+		printf("%s %s\n", k+":", color.BlueString(strings.Join(resp.Header[k], ",")))
 	}
 
 	if bodyMsg != "" {
@@ -276,16 +272,16 @@ func visit(url *url.URL) {
 	}
 
 	fmta := func(d time.Duration) string {
-		return color.CyanString("%7dms", int(d/time.Millisecond))
+		return color.BlueString("%7dms", int(d/time.Millisecond))
 	}
 
 	fmtb := func(d time.Duration) string {
-		return color.CyanString("%-9s", strconv.Itoa(int(d/time.Millisecond))+"ms")
+		return color.BlueString("%-9s", strconv.Itoa(int(d/time.Millisecond))+"ms")
 	}
 
-	colorize := func(s string) string {
+	bold := func(s string) string {
 		v := strings.Split(s, "\n")
-		v[0] = grayscale(16)(v[0])
+		v[0] = color.New(color.Bold).SprintFunc()(v[0])
 		return strings.Join(v, "\n")
 	}
 
@@ -293,7 +289,7 @@ func visit(url *url.URL) {
 
 	switch scheme {
 	case "https":
-		printf(colorize(HTTPSTemplate),
+		printf(bold(HTTPSTemplate),
 			fmta(t1.Sub(t0)), // dns lookup
 			fmta(t2.Sub(t1)), // tcp connection
 			fmta(t3.Sub(t2)), // tls handshake
@@ -306,7 +302,7 @@ func visit(url *url.URL) {
 			fmtb(t5.Sub(t0)), // total
 		)
 	case "http":
-		printf(colorize(HTTPTemplate),
+		printf(bold(HTTPTemplate),
 			fmta(t1.Sub(t0)), // dns lookup
 			fmta(t3.Sub(t1)), // tcp connection
 			fmta(t4.Sub(t3)), // server processing
@@ -385,7 +381,7 @@ func readResponseBody(req *http.Request, resp *http.Response) string {
 	}
 
 	w := ioutil.Discard
-	msg := color.CyanString("Body discarded")
+	msg := color.BlueString("Body discarded")
 
 	if saveOutput == true || outputFile != "" {
 		filename := outputFile
@@ -408,7 +404,7 @@ func readResponseBody(req *http.Request, resp *http.Response) string {
 		}
 		defer f.Close()
 		w = f
-		msg = color.CyanString("Body read")
+		msg = color.BlueString("Body read")
 	}
 
 	if _, err := io.Copy(w, resp.Body); err != nil {
