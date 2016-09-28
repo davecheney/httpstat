@@ -255,6 +255,7 @@ func visit(url *url.URL) {
 	}
 
 	bodyMsg := readResponseBody(req, resp)
+	resp.Body.Close()
 
 	t5 := time.Now() // after read body
 
