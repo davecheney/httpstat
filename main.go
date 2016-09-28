@@ -71,8 +71,6 @@ var (
 	// number of redirects followed
 	redirectsFollowed int
 
-	usage = fmt.Sprintf("usage: %s URL", os.Args[0])
-
 	version = "devel" // for -v flag, updated during the release process with -ldflags=-X=main.version=...
 )
 
@@ -90,7 +88,7 @@ func init() {
 	flag.BoolVar(&showVersion, "v", false, "print version number")
 
 	flag.Usage = func() {
-		os.Stderr.WriteString(usage + "\n")
+		fmt.Fprintf(os, Stderr, "usage: %s URL\n", os.Args[0])
 		flag.PrintDefaults()
 		os.Exit(2)
 	}
