@@ -243,15 +243,13 @@ func visit(url *url.URL) {
 	client := &http.Client{
 		Transport: tr,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			if redirectsFollowed >= maxRedirects {
-				return fmt.Errorf("stopped after %d redirects", maxRedirects)
-			}
+			// always refuse to follow redirects, visit does that
+			// manually if required.
 			return http.ErrUseLastResponse
 		},
 	}
 
 	resp, err := client.Do(req)
-
 	if err != nil {
 		log.Fatalf("failed to read response: %v", err)
 	}
