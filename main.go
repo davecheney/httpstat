@@ -88,7 +88,7 @@ func init() {
 	flag.BoolVar(&showVersion, "v", false, "print version number")
 
 	flag.Usage = func() {
-		fmt.Fprintf(os, Stderr, "usage: %s URL\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "usage: %s URL\n", os.Args[0])
 		flag.PrintDefaults()
 		os.Exit(2)
 	}
