@@ -217,7 +217,14 @@ func visit(url *url.URL) {
 
 	req = req.WithContext(httptrace.WithClientTrace(context.Background(), trace))
 
-	tr := &http.Transport{}
+	proxyURL, err := http.ProxyFromEnvironment(req)
+	if err != nil {
+		log.Fatalf("error retrieving proxy from environment: %v", err)
+	}
+
+	tr := &http.Transport{
+		Proxy: http.ProxyURL(proxyURL),
+	}
 	if scheme == "https" {
 		tr.TLSClientConfig = &tls.Config{
 			ServerName:         host,
