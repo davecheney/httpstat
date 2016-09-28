@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"log"
 	"mime"
+	"net"
 	"net/http"
 	"net/http/httptrace"
 	"net/url"
@@ -19,7 +20,7 @@ import (
 	"strings"
 	"time"
 
-	"net"
+	"golang.org/x/net/http2"
 
 	"github.com/fatih/color"
 )
@@ -230,6 +231,10 @@ func visit(url *url.URL) {
 			ServerName:         host,
 			InsecureSkipVerify: insecure,
 		}
+
+		// Because we create a custom TLSClientConfig, we have to opt-in to HTTP/2.
+		// See https://github.com/golang/go/issues/14275
+		http2.ConfigureTransport(tr)
 	}
 
 	client := &http.Client{
