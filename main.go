@@ -199,6 +199,12 @@ func visit(url *url.URL) {
 	trace := &httptrace.ClientTrace{
 		DNSStart: func(_ httptrace.DNSStartInfo) { t0 = time.Now() },
 		DNSDone:  func(_ httptrace.DNSDoneInfo) { t1 = time.Now() },
+		ConnectStart: func(_, _ string) {
+			if t1.IsZero() {
+				// connecting to IP
+				t1 = time.Now()
+			}
+		},
 		ConnectDone: func(net, addr string, err error) {
 			if err != nil {
 				log.Fatalf("unable to connect to host %v: %v", addr, err)
@@ -212,13 +218,12 @@ func visit(url *url.URL) {
 	}
 	req = req.WithContext(httptrace.WithClientTrace(context.Background(), trace))
 
-	proxyURL, err := http.ProxyFromEnvironment(req)
-	if err != nil {
-		log.Fatalf("error retrieving proxy from environment: %v", err)
-	}
-
 	tr := &http.Transport{
-		Proxy: http.ProxyURL(proxyURL),
+		Proxy:                 http.ProxyFromEnvironment,
+		MaxIdleConns:          100,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
 	}
 
 	switch url.Scheme {
@@ -260,6 +265,10 @@ func visit(url *url.URL) {
 	resp.Body.Close()
 
 	t5 := time.Now() // after read body
+	if t0.IsZero() {
+		// we skipped DNS
+		t0 = t1
+	}
 
 	// print status line and headers
 	printf("\n%s%s%s\n", color.GreenString("HTTP"), grayscale(14)("/"), color.CyanString("%d.%d %s", resp.ProtoMajor, resp.ProtoMinor, resp.Status))
