@@ -59,13 +59,12 @@ var (
 	saveOutput      bool
 	outputFile      string
 	showVersion     bool
+	clientCertFile  string
 
 	// number of redirects followed
 	redirectsFollowed int
 
 	version = "devel" // for -v flag, updated during the release process with -ldflags=-X=main.version=...
-
-	clientCertFile string
 )
 
 const maxRedirects = 10
@@ -80,7 +79,7 @@ func init() {
 	flag.BoolVar(&saveOutput, "O", false, "Save body as remote filename")
 	flag.StringVar(&outputFile, "o", "", "output file for body")
 	flag.BoolVar(&showVersion, "v", false, "print version number")
-	flag.StringVar(&clientCertFile, "c", "", "client cert file for tls config")
+	flag.StringVar(&clientCertFile, "E", "", "client cert file for tls config")
 
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "usage: %s URL\n", os.Args[0])
