@@ -73,16 +73,25 @@ func init() {
 	flag.BoolVar(&followRedirects, "L", false, "follow 30x redirects")
 	flag.BoolVar(&onlyHeader, "I", false, "don't read body of request")
 	flag.BoolVar(&insecure, "k", false, "allow insecure SSL connections")
-	flag.Var(&httpHeaders, "H", "HTTP Header(s) to set. Can be used multiple times. -H 'Accept:...' -H 'Range:....'")
-	flag.BoolVar(&saveOutput, "O", false, "Save body as remote filename")
+	flag.Var(&httpHeaders, "H", "set HTTP header; repeatable: -H 'Accept: ...' -H 'Range: ...'")
+	flag.BoolVar(&saveOutput, "O", false, "save body as remote filename")
 	flag.StringVar(&outputFile, "o", "", "output file for body")
 	flag.BoolVar(&showVersion, "v", false, "print version number")
 
-	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "usage: %s URL\n", os.Args[0])
-		flag.PrintDefaults()
-		os.Exit(2)
-	}
+	flag.Usage = usage
+}
+
+func usage() {
+	fmt.Fprintf(os.Stderr, "Usage: %s [OPTIONS] URL\n\n", os.Args[0])
+	fmt.Fprintln(os.Stderr, "OPTIONS:")
+	flag.PrintDefaults()
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "ENVIRONMENT:")
+	fmt.Fprintln(os.Stderr, "  HTTP_PROXY    proxy for HTTP requests; complete URL or HOST[:PORT]")
+	fmt.Fprintln(os.Stderr, "                used for HTTPS requests if HTTPS_PROXY undefined")
+	fmt.Fprintln(os.Stderr, "  HTTPS_PROXY   proxy for HTTPS requests; complete URL or HOST[:PORT]")
+	fmt.Fprintln(os.Stderr, "  NO_PROXY      comma-separated list of hosts to exclude from proxy")
+	os.Exit(2)
 }
 
 func printf(format string, a ...interface{}) (n int, err error) {
@@ -361,10 +370,10 @@ func readResponseBody(req *http.Request, resp *http.Response) string {
 	w := ioutil.Discard
 	msg := color.CyanString("Body discarded")
 
-	if saveOutput == true || outputFile != "" {
+	if saveOutput || outputFile != "" {
 		filename := outputFile
 
-		if saveOutput == true {
+		if saveOutput {
 			// try to get the filename from the Content-Disposition header
 			// otherwise fall back to the RequestURI
 			if filename = getFilenameFromHeaders(resp.Header); filename == "" {
