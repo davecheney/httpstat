@@ -2,11 +2,11 @@ TARGETS = linux-386 linux-amd64 linux-arm linux-arm64 darwin-amd64 windows-386 w
 COMMAND_NAME = httpstat
 PACKAGE_NAME = github.com/davecheney/$(COMMAND_NAME)
 LDFLAGS = -ldflags=-X=main.version=$(VERSION)
-OBJECTS = $(patsubst $(COMMAND_NAME)-windows-amd64,$(COMMAND_NAME)-windows-amd64.exe, $(patsubst $(COMMAND_NAME)-windows-386,$(COMMAND_NAME)-windows-386.exe, $(patsubst %,$(COMMAND_NAME)-%, $(TARGETS)))) 
+OBJECTS = $(patsubst $(COMMAND_NAME)-windows-amd64%,$(COMMAND_NAME)-windows-amd64%.exe, $(patsubst $(COMMAND_NAME)-windows-386,$(COMMAND_NAME)-windows-386.exe, $(patsubst %,$(COMMAND_NAME)-%-v$(VERSION), $(TARGETS)))) 
 
 release: check-env $(OBJECTS) ## Build release binaries (requires VERSION)
 
-clean: ## Remove release binaries
+clean: check-env ## Remove release binaries
 	rm $(OBJECTS)
 
 $(OBJECTS): $(wildcard *.go)
