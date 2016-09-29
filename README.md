@@ -33,7 +33,7 @@ $ httpstat https://example.com/
 
 This project is aiming for a 1.0 release on the 3rd of October. Open issues for this release are tagged with [this milestone](https://github.com/davecheney/httpstat/milestone/1).
 
-**No neew feature requests will be accepted after the end of September 2016.**
+**No new feature requests will be accepted after the end of September 2016.**
 
 Any open issue not tagged for the [stable release milestone](https://github.com/davecheney/httpstat/milestone/1) will be addressed after the 1.0 release.
 
