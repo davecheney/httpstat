@@ -37,3 +37,4 @@ script:
   - ./httpstat golang.org:80/dl
   - ./httpstat golang.org:443/dl
   - ./httpstat https://http2.akamai.com/
+  - ./httpstat -H Host:\ www.google.com https://216.58.218.100:443/
