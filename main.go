@@ -236,9 +236,9 @@ func visit(url *url.URL) {
 
 	switch url.Scheme {
 	case "https":
-		host, _, err := net.SplitHostPort(url.Host)
+		host, _, err := net.SplitHostPort(req.Host)
 		if err != nil {
-			host = url.Host
+			host = req.Host
 		}
 
 		tr.TLSClientConfig = &tls.Config{

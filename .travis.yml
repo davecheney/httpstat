@@ -8,6 +8,11 @@ os:
   - linux
   - osx
 
+addons:
+  apt:
+    packages:
+    - dnsutils
+
 sudo: false
 
 install:
@@ -37,3 +42,4 @@ script:
   - ./httpstat golang.org:80/dl
   - ./httpstat golang.org:443/dl
   - ./httpstat https://http2.akamai.com/
+  - ./httpstat -H Host:\ www.google.com https://$(dig +short www.google.com | head -1):443/
