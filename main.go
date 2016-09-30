@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"encoding/pem"
 	"flag"
 	"fmt"
 	"io"
@@ -58,6 +59,7 @@ var (
 	saveOutput      bool
 	outputFile      string
 	showVersion     bool
+	clientCertFile  string
 
 	// number of redirects followed
 	redirectsFollowed int
@@ -77,6 +79,7 @@ func init() {
 	flag.BoolVar(&saveOutput, "O", false, "save body as remote filename")
 	flag.StringVar(&outputFile, "o", "", "output file for body")
 	flag.BoolVar(&showVersion, "v", false, "print version number")
+	flag.StringVar(&clientCertFile, "E", "", "client cert file for tls config")
 
 	flag.Usage = usage
 }
@@ -126,6 +129,45 @@ func main() {
 	url := parseURL(args[0])
 
 	visit(url)
+}
+
+// readClientCert - helper function to read client certificate
+// from pem formatted file
+func readClientCert(filename string) []tls.Certificate {
+	if filename == "" {
+		return nil
+	}
+	var (
+		pkeyPem []byte
+		certPem []byte
+	)
+
+	// read client certificate file (must include client private key and certificate)
+	certFileBytes, err := ioutil.ReadFile(clientCertFile)
+	if err != nil {
+		log.Fatalf("failed to read client certificate file: %v", err)
+	}
+
+	for {
+		block, rest := pem.Decode(certFileBytes)
+		if block == nil {
+			break
+		}
+		certFileBytes = rest
+
+		if strings.HasSuffix(block.Type, "PRIVATE KEY") {
+			pkeyPem = pem.EncodeToMemory(block)
+		}
+		if strings.HasSuffix(block.Type, "CERTIFICATE") {
+			certPem = pem.EncodeToMemory(block)
+		}
+	}
+
+	cert, err := tls.X509KeyPair(certPem, pkeyPem)
+	if err != nil {
+		log.Fatalf("unable to load client cert and key pair: %v", err)
+	}
+	return []tls.Certificate{cert}
 }
 
 func parseURL(uri string) *url.URL {
@@ -202,6 +244,7 @@ func visit(url *url.URL) {
 		tr.TLSClientConfig = &tls.Config{
 			ServerName:         host,
 			InsecureSkipVerify: insecure,
+			Certificates:       readClientCert(clientCertFile),
 		}
 
 		// Because we create a custom TLSClientConfig, we have to opt-in to HTTP/2.
