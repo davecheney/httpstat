@@ -16,6 +16,7 @@ install:
 script:
   - go vet $(go list ./... | grep -v "vendor")
   - go build github.com/davecheney/httpstat
+  - go test github.com/davecheney/httpstat
   - ./httpstat http://dave.cheney.net/
   - ./httpstat http://dave.cheney.net:80/
   - ./httpstat -X POST -d 'post' http://httpbin.org/post
@@ -33,3 +34,6 @@ script:
   - ./httpstat google.com
   - ./httpstat google.com:80
   - ./httpstat google.com:443
+  - ./httpstat golang.org:80/dl
+  - ./httpstat golang.org:443/dl
+  - ./httpstat https://http2.akamai.com/
