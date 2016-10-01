@@ -28,14 +28,13 @@ $ httpstat https://example.com/
 - Add extra request headers with `-H 'Name: value'`.
 - The response body is usually discarded, you can use `-o filename` to save it to a file, or `-O` to save it to the file name suggested by the server.
 - HTTP/HTTPS proxies supported via the usual `HTTP_PROXY`/`HTTPS_PROXY` env vars (as well as lower case variants).
+- Supply your own client side certificate with `-E cert.pem`.
 
 ## Feature freeze 30 Sept 2016
 
-This project is aiming for a 1.0 release on the 3rd of October. Open issues for this release are tagged with [this milestone](https://github.com/davecheney/httpstat/milestone/1).
+This project is aiming for a 1.0 release on the 2nd of October. Open issues for this release are tagged with [this milestone](https://github.com/davecheney/httpstat/milestone/1).
 
 **No new feature requests will be accepted after the end of September 2016.**
-
-Any open issue not tagged for the [stable release milestone](https://github.com/davecheney/httpstat/milestone/1) will be addressed after the 1.0 release.
 
 ## Contributing
 
