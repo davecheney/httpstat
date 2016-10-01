@@ -30,15 +30,9 @@ $ httpstat https://example.com/
 - HTTP/HTTPS proxies supported via the usual `HTTP_PROXY`/`HTTPS_PROXY` env vars (as well as lower case variants).
 - Supply your own client side certificate with `-E cert.pem`.
 
-## Feature freeze 30 Sept 2016
-
-This project is aiming for a 1.0 release on the 2nd of October. Open issues for this release are tagged with [this milestone](https://github.com/davecheney/httpstat/milestone/1).
-
-**No new feature requests will be accepted after the end of September 2016.**
-
 ## Contributing
 
-Bug reports are most welcome.
+Bug reports are most welcome, but with the exception of #5, this project is closed.
 
 Pull requests must include a `fixes #NNN` or `updates #NNN` comment. 
 
