@@ -221,7 +221,7 @@ func visit(url *url.URL) {
 
 			printf("\n%s%s\n", color.GreenString("Connected to "), color.CyanString(addr))
 		},
-		WroteHeaders:         func() { t3 = time.Now() },
+		GotConn:              func(_ httptrace.GotConnInfo) { t3 = time.Now() },
 		GotFirstResponseByte: func() { t4 = time.Now() },
 	}
 	req = req.WithContext(httptrace.WithClientTrace(context.Background(), trace))
