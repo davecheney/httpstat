@@ -71,7 +71,7 @@ const maxRedirects = 10
 
 func init() {
 	flag.StringVar(&httpMethod, "X", "GET", "HTTP method to use")
-	flag.StringVar(&postBody, "d", "", "the body of a POST or PUT request")
+	flag.StringVar(&postBody, "d", "", "the body of a POST or PUT request; from file use @filename")
 	flag.BoolVar(&followRedirects, "L", false, "follow 30x redirects")
 	flag.BoolVar(&onlyHeader, "I", false, "don't read body of request")
 	flag.BoolVar(&insecure, "k", false, "allow insecure SSL connections")
