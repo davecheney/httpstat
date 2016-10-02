@@ -94,7 +94,6 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "                used for HTTPS requests if HTTPS_PROXY undefined")
 	fmt.Fprintln(os.Stderr, "  HTTPS_PROXY   proxy for HTTPS requests; complete URL or HOST[:PORT]")
 	fmt.Fprintln(os.Stderr, "  NO_PROXY      comma-separated list of hosts to exclude from proxy")
-	os.Exit(2)
 }
 
 func printf(format string, a ...interface{}) (n int, err error) {
@@ -116,6 +115,7 @@ func main() {
 	args := flag.Args()
 	if len(args) != 1 {
 		flag.Usage()
+		os.Exit(2)
 	}
 
 	if (httpMethod == "POST" || httpMethod == "PUT") && postBody == "" {
