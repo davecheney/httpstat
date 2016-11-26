@@ -1,0 +1,6 @@
+project 	prefix=github.com/davecheney/httpstat
+
+github.com/fatih/color		version=1.1.0
+github.com/mattn/go-colorable 	version=0.0.6
+github.com/mattn/go-isatty	version=0.0.1	
+golang.org/x/net		commit=4971afd
