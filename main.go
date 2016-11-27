@@ -74,7 +74,7 @@ var (
 const maxRedirects = 10
 
 func init() {
-	cmd = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+	cmd = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
 	cmd.StringVar(&httpMethod, "X", "GET", "HTTP method to use")
 	cmd.StringVar(&postBody, "d", "", "the body of a POST or PUT request; from file use @filename")
 	cmd.BoolVar(&followRedirects, "L", false, "follow 30x redirects")
@@ -111,7 +111,13 @@ func grayscale(code color.Attribute) func(string, ...interface{}) string {
 }
 
 func main() {
-	cmd.Parse(os.Args[1:])
+	if err := cmd.Parse(os.Args[1:]); err != nil {
+		if err == flag.ErrHelp {
+			os.Exit(0)
+		} else {
+			os.Exit(1)
+		}
+	}
 
 	if showVersion {
 		fmt.Printf("%s %s (runtime: %s)\n", os.Args[0], version, runtime.Version())
