@@ -124,8 +124,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	args := cmd.Args()
-	if len(args) != 1 {
+	if cmd.NArg() != 1 {
 		out = os.Stderr
 		cmd.Usage()
 		os.Exit(2)
@@ -139,7 +138,7 @@ func main() {
 		httpMethod = "HEAD"
 	}
 
-	url := parseURL(args[0])
+	url := parseURL(cmd.Arg(0))
 
 	visit(url)
 }
