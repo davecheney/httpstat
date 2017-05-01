@@ -446,7 +446,7 @@ func readResponseBody(req *http.Request, resp *http.Response) string {
 		msg = color.CyanString("Body read")
 	}
 
-	if _, err := io.Copy(w, resp.Body); err != nil {
+	if _, err := io.Copy(w, resp.Body); err != nil && w != ioutil.Discard {
 		log.Fatalf("failed to read response body: %v", err)
 	}
 
