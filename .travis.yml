@@ -3,6 +3,7 @@ go_import_path: github.com/davecheney/httpstat
 go:
   - 1.7.x
   - 1.8.x
+  - 1.9.x
 
 os:
   - linux
