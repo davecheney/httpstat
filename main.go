@@ -63,6 +63,10 @@ var (
 
 	// number of redirects followed
 	redirectsFollowed int
+	// FlagSet
+	cmd *flag.FlagSet
+	// out Writer for usage
+	out io.Writer = os.Stdout
 
 	version = "devel" // for -v flag, updated during the release process with -ldflags=-X=main.version=...
 )
@@ -70,30 +74,32 @@ var (
 const maxRedirects = 10
 
 func init() {
-	flag.StringVar(&httpMethod, "X", "GET", "HTTP method to use")
-	flag.StringVar(&postBody, "d", "", "the body of a POST or PUT request; from file use @filename")
-	flag.BoolVar(&followRedirects, "L", false, "follow 30x redirects")
-	flag.BoolVar(&onlyHeader, "I", false, "don't read body of request")
-	flag.BoolVar(&insecure, "k", false, "allow insecure SSL connections")
-	flag.Var(&httpHeaders, "H", "set HTTP header; repeatable: -H 'Accept: ...' -H 'Range: ...'")
-	flag.BoolVar(&saveOutput, "O", false, "save body as remote filename")
-	flag.StringVar(&outputFile, "o", "", "output file for body")
-	flag.BoolVar(&showVersion, "v", false, "print version number")
-	flag.StringVar(&clientCertFile, "E", "", "client cert file for tls config")
+	cmd = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
+	cmd.StringVar(&httpMethod, "X", "GET", "HTTP method to use")
+	cmd.StringVar(&postBody, "d", "", "the body of a POST or PUT request; from file use @filename")
+	cmd.BoolVar(&followRedirects, "L", false, "follow 30x redirects")
+	cmd.BoolVar(&onlyHeader, "I", false, "don't read body of request")
+	cmd.BoolVar(&insecure, "k", false, "allow insecure SSL connections")
+	cmd.Var(&httpHeaders, "H", "set HTTP header; repeatable: -H 'Accept: ...' -H 'Range: ...'")
+	cmd.BoolVar(&saveOutput, "O", false, "save body as remote filename")
+	cmd.StringVar(&outputFile, "o", "", "output file for body")
+	cmd.BoolVar(&showVersion, "v", false, "print version number")
+	cmd.StringVar(&clientCertFile, "E", "", "client cert file for tls config")
 
-	flag.Usage = usage
+	cmd.Usage = usage
 }
 
 func usage() {
-	fmt.Fprintf(os.Stderr, "Usage: %s [OPTIONS] URL\n\n", os.Args[0])
-	fmt.Fprintln(os.Stderr, "OPTIONS:")
-	flag.PrintDefaults()
-	fmt.Fprintln(os.Stderr, "")
-	fmt.Fprintln(os.Stderr, "ENVIRONMENT:")
-	fmt.Fprintln(os.Stderr, "  HTTP_PROXY    proxy for HTTP requests; complete URL or HOST[:PORT]")
-	fmt.Fprintln(os.Stderr, "                used for HTTPS requests if HTTPS_PROXY undefined")
-	fmt.Fprintln(os.Stderr, "  HTTPS_PROXY   proxy for HTTPS requests; complete URL or HOST[:PORT]")
-	fmt.Fprintln(os.Stderr, "  NO_PROXY      comma-separated list of hosts to exclude from proxy")
+	fmt.Fprintf(out, "Usage: %s [OPTIONS] URL\n\n", os.Args[0])
+	fmt.Fprintln(out, "OPTIONS:")
+	cmd.SetOutput(out)
+	cmd.PrintDefaults()
+	fmt.Fprintln(out, "")
+	fmt.Fprintln(out, "ENVIRONMENT:")
+	fmt.Fprintln(out, "  HTTP_PROXY    proxy for HTTP requests; complete URL or HOST[:PORT]")
+	fmt.Fprintln(out, "                used for HTTPS requests if HTTPS_PROXY undefined")
+	fmt.Fprintln(out, "  HTTPS_PROXY   proxy for HTTPS requests; complete URL or HOST[:PORT]")
+	fmt.Fprintln(out, "  NO_PROXY      comma-separated list of hosts to exclude from proxy")
 }
 
 func printf(format string, a ...interface{}) (n int, err error) {
@@ -105,16 +111,22 @@ func grayscale(code color.Attribute) func(string, ...interface{}) string {
 }
 
 func main() {
-	flag.Parse()
+	if err := cmd.Parse(os.Args[1:]); err != nil {
+		if err == flag.ErrHelp {
+			os.Exit(0)
+		} else {
+			os.Exit(1)
+		}
+	}
 
 	if showVersion {
 		fmt.Printf("%s %s (runtime: %s)\n", os.Args[0], version, runtime.Version())
 		os.Exit(0)
 	}
 
-	args := flag.Args()
-	if len(args) != 1 {
-		flag.Usage()
+	if cmd.NArg() != 1 {
+		out = os.Stderr
+		cmd.Usage()
 		os.Exit(2)
 	}
 
@@ -126,7 +138,7 @@ func main() {
 		httpMethod = "HEAD"
 	}
 
-	url := parseURL(args[0])
+	url := parseURL(cmd.Arg(0))
 
 	visit(url)
 }
