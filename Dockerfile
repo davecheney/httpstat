@@ -6,5 +6,4 @@ RUN go get github.com/davecheney/httpstat && \
 
 FROM scratch
 COPY --from=build /go/httpstat /
-ENTRYPOINT ["/httpstat"]
-CMD ["google.com"]
+CMD ["/httpstat"]
