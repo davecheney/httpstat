@@ -36,7 +36,7 @@ script:
   - ./httpstat -H Accept:\ application/vnd.heroku+json\;\ version=3 https://api.heroku.com/schema
   - ./httpstat -O http://example.com/file && stat file
   - ./httpstat -o custom http://example.com/file && stat custom
-  - ./httpstat -O http://httpbin.org/response-headers?Content-Disposition=attachment%3B%20filename%3dtest.json && stat test.json
+  - ./httpstat -O https://httpbin.org/response-headers?Content-Disposition=attachment%3B%20filename%3dtest.json && stat test.json
   - ./httpstat google.com
   - ./httpstat google.com:80
   - ./httpstat google.com:443
