@@ -52,6 +52,7 @@ var (
 	// Command line flags.
 	httpMethod      string
 	postBody        string
+	repeat          int
 	followRedirects bool
 	onlyHeader      bool
 	insecure        bool
@@ -72,6 +73,7 @@ const maxRedirects = 10
 func init() {
 	flag.StringVar(&httpMethod, "X", "GET", "HTTP method to use")
 	flag.StringVar(&postBody, "d", "", "the body of a POST or PUT request; from file use @filename")
+	flag.IntVar(&repeat, "r", 0, "Repeat the same request N times on the same connection")
 	flag.BoolVar(&followRedirects, "L", false, "follow 30x redirects")
 	flag.BoolVar(&onlyHeader, "I", false, "don't read body of request")
 	flag.BoolVar(&insecure, "k", false, "allow insecure SSL connections")
@@ -127,8 +129,11 @@ func main() {
 	}
 
 	url := parseURL(args[0])
+	tr := newTransport(url)
 
-	visit(url)
+	for i := repeat + 1; i > 0; i-- {
+		visit(tr, url)
+	}
 }
 
 // readClientCert - helper function to read client certificate
@@ -197,35 +202,7 @@ func headerKeyValue(h string) (string, string) {
 	return strings.TrimRight(h[:i], " "), strings.TrimLeft(h[i:], " :")
 }
 
-// visit visits a url and times the interaction.
-// If the response is a 30x, visit follows the redirect.
-func visit(url *url.URL) {
-	req := newRequest(httpMethod, url, postBody)
-
-	var t0, t1, t2, t3, t4 time.Time
-
-	trace := &httptrace.ClientTrace{
-		DNSStart: func(_ httptrace.DNSStartInfo) { t0 = time.Now() },
-		DNSDone:  func(_ httptrace.DNSDoneInfo) { t1 = time.Now() },
-		ConnectStart: func(_, _ string) {
-			if t1.IsZero() {
-				// connecting to IP
-				t1 = time.Now()
-			}
-		},
-		ConnectDone: func(net, addr string, err error) {
-			if err != nil {
-				log.Fatalf("unable to connect to host %v: %v", addr, err)
-			}
-			t2 = time.Now()
-
-			printf("\n%s%s\n", color.GreenString("Connected to "), color.CyanString(addr))
-		},
-		GotConn:              func(_ httptrace.GotConnInfo) { t3 = time.Now() },
-		GotFirstResponseByte: func() { t4 = time.Now() },
-	}
-	req = req.WithContext(httptrace.WithClientTrace(context.Background(), trace))
-
+func newTransport(url *url.URL) *http.Transport {
 	tr := &http.Transport{
 		Proxy:                 http.ProxyFromEnvironment,
 		MaxIdleConns:          100,
@@ -236,9 +213,9 @@ func visit(url *url.URL) {
 
 	switch url.Scheme {
 	case "https":
-		host, _, err := net.SplitHostPort(req.Host)
+		host, _, err := net.SplitHostPort(url.Host)
 		if err != nil {
-			host = req.Host
+			host = url.Host
 		}
 
 		tr.TLSClientConfig = &tls.Config{
@@ -254,6 +231,41 @@ func visit(url *url.URL) {
 			log.Fatalf("failed to prepare transport for HTTP/2: %v", err)
 		}
 	}
+
+	return tr
+}
+
+// visit visits a url and times the interaction.
+// If the response is a 30x, visit follows the redirect.
+func visit(tr *http.Transport, url *url.URL) {
+	req := newRequest(httpMethod, url, postBody)
+
+	var tStart, tDNSStart, tDNSEnd, tConnectStart, tConnectEnd, tTLSStart, tTLSEnd, tConnected, tTTBF, tDone time.Time
+
+	trace := &httptrace.ClientTrace{
+		GetConn:  func(_ string) { tStart = time.Now() },
+		DNSStart: func(_ httptrace.DNSStartInfo) { tDNSStart = time.Now() },
+		DNSDone:  func(_ httptrace.DNSDoneInfo) { tDNSEnd = time.Now() },
+		ConnectStart: func(_, _ string) {
+			if tConnectStart.IsZero() {
+				// connecting to IP
+				tConnectStart = time.Now()
+			}
+		},
+		ConnectDone: func(net, addr string, err error) {
+			if err != nil {
+				log.Fatalf("unable to connect to host %v: %v", addr, err)
+			}
+			tConnectEnd = time.Now()
+
+			printf("\n%s%s\n", color.GreenString("Connected to "), color.CyanString(addr))
+		},
+		TLSHandshakeStart:    func() { tTLSStart = time.Now() },
+		TLSHandshakeDone:     func(_ tls.ConnectionState, _ error) { tTLSEnd = time.Now() },
+		GotConn:              func(_ httptrace.GotConnInfo) { tConnected = time.Now() },
+		GotFirstResponseByte: func() { tTTBF = time.Now() },
+	}
+	req = req.WithContext(httptrace.WithClientTrace(context.Background(), trace))
 
 	client := &http.Client{
 		Transport: tr,
@@ -272,10 +284,18 @@ func visit(url *url.URL) {
 	bodyMsg := readResponseBody(req, resp)
 	resp.Body.Close()
 
-	t5 := time.Now() // after read body
-	if t0.IsZero() {
-		// we skipped DNS
-		t0 = t1
+	tDone = time.Now() // after read body
+	if tDNSStart.IsZero() {
+		tDNSStart = tStart
+		tDNSEnd = tStart
+	}
+	if tConnectStart.IsZero() {
+		tConnectStart = tStart
+		tConnectEnd = tStart
+	}
+	if tTLSStart.IsZero() {
+		tTLSStart = tStart
+		tTLSEnd = tStart
 	}
 
 	// print status line and headers
@@ -313,27 +333,27 @@ func visit(url *url.URL) {
 	switch url.Scheme {
 	case "https":
 		printf(colorize(HTTPSTemplate),
-			fmta(t1.Sub(t0)), // dns lookup
-			fmta(t2.Sub(t1)), // tcp connection
-			fmta(t3.Sub(t2)), // tls handshake
-			fmta(t4.Sub(t3)), // server processing
-			fmta(t5.Sub(t4)), // content transfer
-			fmtb(t1.Sub(t0)), // namelookup
-			fmtb(t2.Sub(t0)), // connect
-			fmtb(t3.Sub(t0)), // pretransfer
-			fmtb(t4.Sub(t0)), // starttransfer
-			fmtb(t5.Sub(t0)), // total
+			fmta(tDNSEnd.Sub(tDNSStart)),         // dns lookup
+			fmta(tConnectEnd.Sub(tConnectStart)), // tcp connection
+			fmta(tTLSEnd.Sub(tTLSStart)),         // tls handshake
+			fmta(tTTBF.Sub(tConnected)),          // server processing
+			fmta(tDone.Sub(tTTBF)),               // content transfer
+			fmtb(tDNSEnd.Sub(tStart)),            // namelookup
+			fmtb(tConnectEnd.Sub(tStart)),        // connect
+			fmtb(tConnected.Sub(tStart)),         // pretransfer
+			fmtb(tTTBF.Sub(tStart)),              // starttransfer
+			fmtb(tDone.Sub(tStart)),              // total
 		)
 	case "http":
 		printf(colorize(HTTPTemplate),
-			fmta(t1.Sub(t0)), // dns lookup
-			fmta(t3.Sub(t1)), // tcp connection
-			fmta(t4.Sub(t3)), // server processing
-			fmta(t5.Sub(t4)), // content transfer
-			fmtb(t1.Sub(t0)), // namelookup
-			fmtb(t3.Sub(t0)), // connect
-			fmtb(t4.Sub(t0)), // starttransfer
-			fmtb(t5.Sub(t0)), // total
+			fmta(tDNSEnd.Sub(tDNSStart)),         // dns lookup
+			fmta(tConnectEnd.Sub(tConnectStart)), // tcp connection
+			fmta(tTTBF.Sub(tConnected)),          // server processing
+			fmta(tDone.Sub(tTTBF)),               // content transfer
+			fmtb(tDNSEnd.Sub(tStart)),            // namelookup
+			fmtb(tConnectEnd.Sub(tStart)),        // connect
+			fmtb(tTTBF.Sub(tStart)),              // starttransfer
+			fmtb(tDone.Sub(tStart)),              // total
 		)
 	}
 
@@ -352,7 +372,7 @@ func visit(url *url.URL) {
 			log.Fatalf("maximum number of redirects (%d) followed", maxRedirects)
 		}
 
-		visit(loc)
+		visit(tr, loc)
 	}
 }
 
