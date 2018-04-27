@@ -202,27 +202,30 @@ func headerKeyValue(h string) (string, string) {
 func visit(url *url.URL) {
 	req := newRequest(httpMethod, url, postBody)
 
-	var t0, t1, t2, t3, t4 time.Time
+	var tStart, tDNSStart, tDNSEnd, tConnectStart, tConnectEnd, tTLSStart, tTLSEnd, tConnected, tTTBF, tDone time.Time
 
 	trace := &httptrace.ClientTrace{
-		DNSStart: func(_ httptrace.DNSStartInfo) { t0 = time.Now() },
-		DNSDone:  func(_ httptrace.DNSDoneInfo) { t1 = time.Now() },
+		GetConn:  func(_ string) { tStart = time.Now() },
+		DNSStart: func(_ httptrace.DNSStartInfo) { tDNSStart = time.Now() },
+		DNSDone:  func(_ httptrace.DNSDoneInfo) { tDNSEnd = time.Now() },
 		ConnectStart: func(_, _ string) {
-			if t1.IsZero() {
+			if tConnectStart.IsZero() {
 				// connecting to IP
-				t1 = time.Now()
+				tConnectStart = time.Now()
 			}
 		},
 		ConnectDone: func(net, addr string, err error) {
 			if err != nil {
 				log.Fatalf("unable to connect to host %v: %v", addr, err)
 			}
-			t2 = time.Now()
+			tConnectEnd = time.Now()
 
 			printf("\n%s%s\n", color.GreenString("Connected to "), color.CyanString(addr))
 		},
-		GotConn:              func(_ httptrace.GotConnInfo) { t3 = time.Now() },
-		GotFirstResponseByte: func() { t4 = time.Now() },
+		TLSHandshakeStart:    func() { tTLSStart = time.Now() },
+		TLSHandshakeDone:     func(_ tls.ConnectionState, _ error) { tTLSEnd = time.Now() },
+		GotConn:              func(_ httptrace.GotConnInfo) { tConnected = time.Now() },
+		GotFirstResponseByte: func() { tTTBF = time.Now() },
 	}
 	req = req.WithContext(httptrace.WithClientTrace(context.Background(), trace))
 
@@ -272,10 +275,18 @@ func visit(url *url.URL) {
 	bodyMsg := readResponseBody(req, resp)
 	resp.Body.Close()
 
-	t5 := time.Now() // after read body
-	if t0.IsZero() {
-		// we skipped DNS
-		t0 = t1
+	tDone = time.Now() // after read body
+	if tDNSStart.IsZero() {
+		tDNSStart = tStart
+		tDNSEnd = tStart
+	}
+	if tConnectStart.IsZero() {
+		tConnectStart = tStart
+		tConnectEnd = tStart
+	}
+	if tTLSStart.IsZero() {
+		tTLSStart = tStart
+		tTLSEnd = tStart
 	}
 
 	// print status line and headers
@@ -313,27 +324,27 @@ func visit(url *url.URL) {
 	switch url.Scheme {
 	case "https":
 		printf(colorize(HTTPSTemplate),
-			fmta(t1.Sub(t0)), // dns lookup
-			fmta(t2.Sub(t1)), // tcp connection
-			fmta(t3.Sub(t2)), // tls handshake
-			fmta(t4.Sub(t3)), // server processing
-			fmta(t5.Sub(t4)), // content transfer
-			fmtb(t1.Sub(t0)), // namelookup
-			fmtb(t2.Sub(t0)), // connect
-			fmtb(t3.Sub(t0)), // pretransfer
-			fmtb(t4.Sub(t0)), // starttransfer
-			fmtb(t5.Sub(t0)), // total
+			fmta(tDNSEnd.Sub(tDNSStart)),         // dns lookup
+			fmta(tConnectEnd.Sub(tConnectStart)), // tcp connection
+			fmta(tTLSEnd.Sub(tTLSStart)),         // tls handshake
+			fmta(tTTBF.Sub(tConnected)),          // server processing
+			fmta(tDone.Sub(tTTBF)),               // content transfer
+			fmtb(tDNSEnd.Sub(tStart)),            // namelookup
+			fmtb(tConnectEnd.Sub(tStart)),        // connect
+			fmtb(tConnected.Sub(tStart)),         // pretransfer
+			fmtb(tTTBF.Sub(tStart)),              // starttransfer
+			fmtb(tDone.Sub(tStart)),              // total
 		)
 	case "http":
 		printf(colorize(HTTPTemplate),
-			fmta(t1.Sub(t0)), // dns lookup
-			fmta(t3.Sub(t1)), // tcp connection
-			fmta(t4.Sub(t3)), // server processing
-			fmta(t5.Sub(t4)), // content transfer
-			fmtb(t1.Sub(t0)), // namelookup
-			fmtb(t3.Sub(t0)), // connect
-			fmtb(t4.Sub(t0)), // starttransfer
-			fmtb(t5.Sub(t0)), // total
+			fmta(tDNSEnd.Sub(tDNSStart)),         // dns lookup
+			fmta(tConnectEnd.Sub(tConnectStart)), // tcp connection
+			fmta(tTTBF.Sub(tConnected)),          // server processing
+			fmta(tDone.Sub(tTTBF)),               // content transfer
+			fmtb(tDNSEnd.Sub(tStart)),            // namelookup
+			fmtb(tConnectEnd.Sub(tStart)),        // connect
+			fmtb(tTTBF.Sub(tStart)),              // starttransfer
+			fmtb(tDone.Sub(tStart)),              // total
 		)
 	}
 
