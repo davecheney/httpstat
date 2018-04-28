@@ -202,7 +202,7 @@ func headerKeyValue(h string) (string, string) {
 func visit(url *url.URL) {
 	req := newRequest(httpMethod, url, postBody)
 
-	var t0, t1, t2, t3, t4 time.Time
+	var t0, t1, t2, t3, t4, t5, t6 time.Time
 
 	trace := &httptrace.ClientTrace{
 		DNSStart: func(_ httptrace.DNSStartInfo) { t0 = time.Now() },
@@ -223,6 +223,8 @@ func visit(url *url.URL) {
 		},
 		GotConn:              func(_ httptrace.GotConnInfo) { t3 = time.Now() },
 		GotFirstResponseByte: func() { t4 = time.Now() },
+		TLSHandshakeStart:    func() { t5 = time.Now() },
+		TLSHandshakeDone:     func(_ tls.ConnectionState, _ error) { t6 = time.Now() },
 	}
 	req = req.WithContext(httptrace.WithClientTrace(context.Background(), trace))
 
@@ -272,7 +274,7 @@ func visit(url *url.URL) {
 	bodyMsg := readResponseBody(req, resp)
 	resp.Body.Close()
 
-	t5 := time.Now() // after read body
+	t7 := time.Now() // after read body
 	if t0.IsZero() {
 		// we skipped DNS
 		t0 = t1
@@ -315,25 +317,25 @@ func visit(url *url.URL) {
 		printf(colorize(HTTPSTemplate),
 			fmta(t1.Sub(t0)), // dns lookup
 			fmta(t2.Sub(t1)), // tcp connection
-			fmta(t3.Sub(t2)), // tls handshake
+			fmta(t6.Sub(t5)), // tls handshake
 			fmta(t4.Sub(t3)), // server processing
-			fmta(t5.Sub(t4)), // content transfer
+			fmta(t7.Sub(t4)), // content transfer
 			fmtb(t1.Sub(t0)), // namelookup
 			fmtb(t2.Sub(t0)), // connect
 			fmtb(t3.Sub(t0)), // pretransfer
 			fmtb(t4.Sub(t0)), // starttransfer
-			fmtb(t5.Sub(t0)), // total
+			fmtb(t7.Sub(t0)), // total
 		)
 	case "http":
 		printf(colorize(HTTPTemplate),
 			fmta(t1.Sub(t0)), // dns lookup
 			fmta(t3.Sub(t1)), // tcp connection
 			fmta(t4.Sub(t3)), // server processing
-			fmta(t5.Sub(t4)), // content transfer
+			fmta(t7.Sub(t4)), // content transfer
 			fmtb(t1.Sub(t0)), // namelookup
 			fmtb(t3.Sub(t0)), // connect
 			fmtb(t4.Sub(t0)), // starttransfer
-			fmtb(t5.Sub(t0)), // total
+			fmtb(t7.Sub(t0)), // total
 		)
 	}
 
