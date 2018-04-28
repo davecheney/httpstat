@@ -28,7 +28,7 @@ script:
   - ./httpstat https://www.google.com/
   - ./httpstat https://www.google.com:443/
   - ./httpstat -L https://httpbin.org/redirect-to?url=https://httpbin.org/relative-redirect/1
-  - ./httpstat -I http://example.com/
+  - ./httpstat -I https://httpbin.org/headers
   - ./httpstat -I -L http://httpbin.org/redirect/1
   - ./httpstat https://www.apple.com/
   - ./httpstat -H Accept:\ application/vnd.heroku+json\;\ version=3 https://api.heroku.com/schema
