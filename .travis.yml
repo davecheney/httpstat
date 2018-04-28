@@ -1,9 +1,7 @@
 language: go
 go_import_path: github.com/davecheney/httpstat
 go:
-  - 1.7.x
-  - 1.8.x
-  - 1.9.x
+  - 1.10.x
 
 os:
   - linux
@@ -20,7 +18,7 @@ install:
   - echo "skipping travis' default go get -t -v to ensure we're only using vendor/ dependencies"
 
 script:
-  - go vet $(go list ./... | grep -v "vendor")
+  - go vet ./...
   - go build github.com/davecheney/httpstat
   - go test github.com/davecheney/httpstat
   - ./httpstat http://dave.cheney.net/
