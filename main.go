@@ -60,6 +60,8 @@ var (
 	outputFile      string
 	showVersion     bool
 	clientCertFile  string
+	fourOnly        bool
+	sixOnly         bool
 
 	// number of redirects followed
 	redirectsFollowed int
@@ -80,6 +82,8 @@ func init() {
 	flag.StringVar(&outputFile, "o", "", "output file for body")
 	flag.BoolVar(&showVersion, "v", false, "print version number")
 	flag.StringVar(&clientCertFile, "E", "", "client cert file for tls config")
+	flag.BoolVar(&fourOnly, "4", false, "resolve IPv4 addresses only")
+	flag.BoolVar(&sixOnly, "6", false, "resolve IPv6 addresses only")
 
 	flag.Usage = usage
 }
@@ -110,6 +114,11 @@ func main() {
 	if showVersion {
 		fmt.Printf("%s %s (runtime: %s)\n", os.Args[0], version, runtime.Version())
 		os.Exit(0)
+	}
+
+	if fourOnly && sixOnly {
+		fmt.Fprintf(os.Stderr, "%s: Only one of -4 and -6 may be specified\n", os.Args[0])
+		os.Exit(-1)
 	}
 
 	args := flag.Args()
@@ -197,6 +206,16 @@ func headerKeyValue(h string) (string, string) {
 	return strings.TrimRight(h[:i], " "), strings.TrimLeft(h[i:], " :")
 }
 
+func dialContext(network string) func(ctx context.Context, network, addr string) (net.Conn, error) {
+	return func(ctx context.Context, _, addr string) (net.Conn, error) {
+		return (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+			DualStack: false,
+		}).DialContext(ctx, network, addr)
+	}
+}
+
 // visit visits a url and times the interaction.
 // If the response is a 30x, visit follows the redirect.
 func visit(url *url.URL) {
@@ -234,6 +253,13 @@ func visit(url *url.URL) {
 		IdleConnTimeout:       90 * time.Second,
 		TLSHandshakeTimeout:   10 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
+	}
+
+	switch {
+	case fourOnly:
+		tr.DialContext = dialContext("tcp4")
+	case sixOnly:
+		tr.DialContext = dialContext("tcp6")
 	}
 
 	switch url.Scheme {
