@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"encoding/pem"
 	"flag"
 	"fmt"
@@ -16,6 +18,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"reflect"
 	"runtime"
 	"sort"
 	"strconv"
@@ -27,25 +30,47 @@ import (
 	"github.com/fatih/color"
 )
 
+type Report struct {
+	Address string
+	Header  http.Header
+	Proto   string
+	Status  string
+	Timing  Timing
+}
+
+type Timing struct {
+	DNS      int
+	TCP      int
+	TLS      int
+	Server   int
+	Transfer int
+
+	Lookup        int
+	Connect       int
+	PreTransfer   int
+	StartTransfer int
+	Total         int
+}
+
 const (
 	HTTPSTemplate = `` +
 		`  DNS Lookup   TCP Connection   TLS Handshake   Server Processing   Content Transfer` + "\n" +
-		`[%s  |     %s  |    %s  |        %s  |       %s  ]` + "\n" +
+		`[    %>DNS  |         %>TCP  |        %>TLS  |         %>Server  |      %>Transfer  ]` + "\n" +
 		`            |                |               |                   |                  |` + "\n" +
-		`   namelookup:%s      |               |                   |                  |` + "\n" +
-		`                       connect:%s     |                   |                  |` + "\n" +
-		`                                   pretransfer:%s         |                  |` + "\n" +
-		`                                                     starttransfer:%s        |` + "\n" +
-		`                                                                                total:%s` + "\n"
+		`   namelookup:%<Lookup       |               |                   |                  |` + "\n" +
+		`                       connect:%<Connect     |                   |                  |` + "\n" +
+		`                                   pretransfer:%<PreTransfer     |                  |` + "\n" +
+		`                                                     starttransfer:%<StartTransfer  |` + "\n" +
+		`                                                                                total:%<Total` + "\n"
 
 	HTTPTemplate = `` +
-		`   DNS Lookup   TCP Connection   Server Processing   Content Transfer` + "\n" +
-		`[ %s  |     %s  |        %s  |       %s  ]` + "\n" +
-		`             |                |                   |                  |` + "\n" +
-		`    namelookup:%s      |                   |                  |` + "\n" +
-		`                        connect:%s         |                  |` + "\n" +
-		`                                      starttransfer:%s        |` + "\n" +
-		`                                                                 total:%s` + "\n"
+		`  DNS Lookup   TCP Connection   Server Processing   Content Transfer` + "\n" +
+		`[    %>DNS  |         %>TCP  |         %>Server  |      %>Transfer  ]` + "\n" +
+		`            |                |                   |                  |` + "\n" +
+		`   namelookup:%<Lookup       |                   |                  |` + "\n" +
+		`                       connect:%<Connect         |                  |` + "\n" +
+		`                                     starttransfer:%<StartTransfer  |` + "\n" +
+		`                                                                total:%<Total` + "\n"
 )
 
 var (
@@ -62,6 +87,7 @@ var (
 	clientCertFile  string
 	fourOnly        bool
 	sixOnly         bool
+	jsonOutput      bool
 
 	// number of redirects followed
 	redirectsFollowed int
@@ -84,6 +110,7 @@ func init() {
 	flag.StringVar(&clientCertFile, "E", "", "client cert file for tls config")
 	flag.BoolVar(&fourOnly, "4", false, "resolve IPv4 addresses only")
 	flag.BoolVar(&sixOnly, "6", false, "resolve IPv6 addresses only")
+	flag.BoolVar(&jsonOutput, "J", false, "use JSON to output results")
 
 	flag.Usage = usage
 }
@@ -221,12 +248,16 @@ func dialContext(network string) func(ctx context.Context, network, addr string)
 func visit(url *url.URL) {
 	req := newRequest(httpMethod, url, postBody)
 
-	var tStart, tDNSStart, tDNSEnd, tConnectStart, tConnectEnd, tTLSStart, tTLSEnd, tConnected, tTTBF, tDone time.Time
+	var tStart, tDNSStart, tConnectStart, tTLSStart, tConnected, tTTFB time.Time
+	var report Report
 
 	trace := &httptrace.ClientTrace{
 		GetConn:  func(_ string) { tStart = time.Now() },
 		DNSStart: func(_ httptrace.DNSStartInfo) { tDNSStart = time.Now() },
-		DNSDone:  func(_ httptrace.DNSDoneInfo) { tDNSEnd = time.Now() },
+		DNSDone: func(_ httptrace.DNSDoneInfo) {
+			report.Timing.DNS = msSince(tDNSStart)
+			report.Timing.Lookup = msSince(tStart)
+		},
 		ConnectStart: func(_, _ string) {
 			if tConnectStart.IsZero() {
 				// connecting to IP
@@ -237,14 +268,27 @@ func visit(url *url.URL) {
 			if err != nil {
 				log.Fatalf("unable to connect to host %v: %v", addr, err)
 			}
-			tConnectEnd = time.Now()
+			report.Timing.TCP = msSince(tConnectStart)
+			report.Timing.Connect = msSince(tStart)
 
-			printf("\n%s%s\n", color.GreenString("Connected to "), color.CyanString(addr))
+			report.Address = addr
+			if !jsonOutput {
+				printf("\n%s%s\n", color.GreenString("Connected to "), color.CyanString(addr))
+			}
 		},
-		TLSHandshakeStart:    func() { tTLSStart = time.Now() },
-		TLSHandshakeDone:     func(_ tls.ConnectionState, _ error) { tTLSEnd = time.Now() },
-		GotConn:              func(_ httptrace.GotConnInfo) { tConnected = time.Now() },
-		GotFirstResponseByte: func() { tTTBF = time.Now() },
+		TLSHandshakeStart: func() { tTLSStart = time.Now() },
+		TLSHandshakeDone: func(_ tls.ConnectionState, _ error) {
+			report.Timing.TLS = msSince(tTLSStart)
+		},
+		GotConn: func(_ httptrace.GotConnInfo) {
+			tConnected = time.Now()
+			report.Timing.PreTransfer = msSince(tStart)
+		},
+		GotFirstResponseByte: func() {
+			tTTFB = time.Now()
+			report.Timing.Server = msSince(tConnected)
+			report.Timing.StartTransfer = msSince(tStart)
+		},
 	}
 	req = req.WithContext(httptrace.WithClientTrace(context.Background(), trace))
 
@@ -301,77 +345,45 @@ func visit(url *url.URL) {
 	bodyMsg := readResponseBody(req, resp)
 	resp.Body.Close()
 
-	tDone = time.Now() // after read body
-	if tDNSStart.IsZero() {
-		tDNSStart = tStart
-		tDNSEnd = tStart
-	}
-	if tConnectStart.IsZero() {
-		tConnectStart = tStart
-		tConnectEnd = tStart
-	}
-	if tTLSStart.IsZero() {
-		tTLSStart = tStart
-		tTLSEnd = tStart
-	}
+	// after read body
+	report.Timing.Transfer = msSince(tTTFB)
+	report.Timing.Total = msSince(tStart)
+
+	report.Proto = resp.Proto
+	report.Status = resp.Status
+	report.Header = resp.Header
 
 	// print status line and headers
-	printf("\n%s%s%s\n", color.GreenString("HTTP"), grayscale(14)("/"), color.CyanString("%d.%d %s", resp.ProtoMajor, resp.ProtoMinor, resp.Status))
+	if jsonOutput {
+		b, err := json.Marshal(report)
+		if err != nil {
+			log.Fatalf("unable to marshal json report: %v", err)
+		}
+		fmt.Printf("%s\n", b)
+	} else {
+		printf("\n%s%s%s\n", color.GreenString("HTTP"), grayscale(14)("/"), color.CyanString("%d.%d %s", resp.ProtoMajor, resp.ProtoMinor, resp.Status))
 
-	names := make([]string, 0, len(resp.Header))
-	for k := range resp.Header {
-		names = append(names, k)
-	}
-	sort.Sort(headers(names))
-	for _, k := range names {
-		printf("%s %s\n", grayscale(14)(k+":"), color.CyanString(strings.Join(resp.Header[k], ",")))
-	}
+		names := make([]string, 0, len(resp.Header))
+		for k := range resp.Header {
+			names = append(names, k)
+		}
+		sort.Sort(headers(names))
+		for _, k := range names {
+			printf("%s %s\n", grayscale(14)(k+":"), color.CyanString(strings.Join(resp.Header[k], ",")))
+		}
 
-	if bodyMsg != "" {
-		printf("\n%s\n", bodyMsg)
-	}
+		if bodyMsg != "" {
+			printf("\n%s\n", bodyMsg)
+		}
 
-	fmta := func(d time.Duration) string {
-		return color.CyanString("%7dms", int(d/time.Millisecond))
-	}
+		fmt.Println()
 
-	fmtb := func(d time.Duration) string {
-		return color.CyanString("%-9s", strconv.Itoa(int(d/time.Millisecond))+"ms")
-	}
-
-	colorize := func(s string) string {
-		v := strings.Split(s, "\n")
-		v[0] = grayscale(16)(v[0])
-		return strings.Join(v, "\n")
-	}
-
-	fmt.Println()
-
-	switch url.Scheme {
-	case "https":
-		printf(colorize(HTTPSTemplate),
-			fmta(tDNSEnd.Sub(tDNSStart)),         // dns lookup
-			fmta(tConnectEnd.Sub(tConnectStart)), // tcp connection
-			fmta(tTLSEnd.Sub(tTLSStart)),         // tls handshake
-			fmta(tTTBF.Sub(tConnected)),          // server processing
-			fmta(tDone.Sub(tTTBF)),               // content transfer
-			fmtb(tDNSEnd.Sub(tStart)),            // namelookup
-			fmtb(tConnectEnd.Sub(tStart)),        // connect
-			fmtb(tConnected.Sub(tStart)),         // pretransfer
-			fmtb(tTTBF.Sub(tStart)),              // starttransfer
-			fmtb(tDone.Sub(tStart)),              // total
-		)
-	case "http":
-		printf(colorize(HTTPTemplate),
-			fmta(tDNSEnd.Sub(tDNSStart)),         // dns lookup
-			fmta(tConnectEnd.Sub(tConnectStart)), // tcp connection
-			fmta(tTTBF.Sub(tConnected)),          // server processing
-			fmta(tDone.Sub(tTTBF)),               // content transfer
-			fmtb(tDNSEnd.Sub(tStart)),            // namelookup
-			fmtb(tConnectEnd.Sub(tStart)),        // connect
-			fmtb(tTTBF.Sub(tStart)),              // starttransfer
-			fmtb(tDone.Sub(tStart)),              // total
-		)
+		switch url.Scheme {
+		case "https":
+			printTemplate(HTTPSTemplate, report.Timing)
+		case "http":
+			printTemplate(HTTPTemplate, report.Timing)
+		}
 	}
 
 	if followRedirects && isRedirect(resp) {
@@ -391,6 +403,40 @@ func visit(url *url.URL) {
 
 		visit(loc)
 	}
+}
+
+func msSince(t time.Time) int {
+	return int(time.Now().Sub(t) / time.Millisecond)
+}
+
+func printTemplate(tmpl string, vars Timing) {
+	rvars := reflect.ValueOf(vars)
+	b := []byte(tmpl)
+	for idx := bytes.IndexByte(b, '%'); idx != -1; idx = bytes.IndexByte(b, '%') {
+		dir := b[idx+1]
+		end := idx + 2
+		for ; end < len(b) && ((b[end] >= 'a' && b[end] <= 'z') || (b[end] >= 'A' && b[end] <= 'Z')); end++ {
+		}
+		vnam := string(b[idx+2 : end])
+		copy(b[idx:end], bytes.Repeat([]byte{' '}, end-idx))
+		val := rvars.FieldByName(vnam)
+		if !val.IsValid() {
+			panic("invalid template variable: " + vnam)
+		}
+		v := strconv.Itoa(val.Interface().(int)) + "ms"
+		vlen := len(v)
+		v = color.CyanString(v)
+		switch dir {
+		case '>':
+			b = append(append(append([]byte{}, b[:end-vlen]...), []byte(v)...), b[end:]...)
+		case '<':
+			b = append(append(append([]byte{}, b[:idx]...), []byte(v)...), b[idx+vlen:]...)
+		default:
+			panic("invalid direction: " + string(dir))
+		}
+		idx = end
+	}
+	print(string(b))
 }
 
 func isRedirect(resp *http.Response) bool {
