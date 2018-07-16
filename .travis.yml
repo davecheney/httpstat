@@ -12,9 +12,12 @@ sudo: false
 
 install: true
 
+env:
+  - GO111MODULE=on
+
 script:
-  - env GO111MODULE=on go build 
-  - env GO111MODULE=on go test
+  - go build 
+  - go test
   - ./httpstat https://dave.cheney.net/
   - ./httpstat https://dave.cheney.net:443/
   - ./httpstat -X POST -d 'post' https://httpbin.org/post
