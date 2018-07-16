@@ -13,9 +13,8 @@ sudo: false
 install: true
 
 script:
-  - go vet ./...
-  - go build github.com/davecheney/httpstat
-  - go test github.com/davecheney/httpstat
+  - env GO111MODULE=on go build 
+  - env GO111MODULE=on go test
   - ./httpstat https://dave.cheney.net/
   - ./httpstat https://dave.cheney.net:443/
   - ./httpstat -X POST -d 'post' https://httpbin.org/post
