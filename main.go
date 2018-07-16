@@ -28,7 +28,7 @@ import (
 )
 
 const (
-	HTTPSTemplate = `` +
+	httpsTemplate = `` +
 		`  DNS Lookup   TCP Connection   TLS Handshake   Server Processing   Content Transfer` + "\n" +
 		`[%s  |     %s  |    %s  |        %s  |       %s  ]` + "\n" +
 		`            |                |               |                   |                  |` + "\n" +
@@ -38,7 +38,7 @@ const (
 		`                                                     starttransfer:%s        |` + "\n" +
 		`                                                                                total:%s` + "\n"
 
-	HTTPTemplate = `` +
+	httpTemplate = `` +
 		`   DNS Lookup   TCP Connection   Server Processing   Content Transfer` + "\n" +
 		`[ %s  |     %s  |        %s  |       %s  ]` + "\n" +
 		`             |                |                   |                  |` + "\n" +
@@ -340,7 +340,7 @@ func visit(url *url.URL) {
 
 	switch url.Scheme {
 	case "https":
-		printf(colorize(HTTPSTemplate),
+		printf(colorize(httpsTemplate),
 			fmta(t1.Sub(t0)), // dns lookup
 			fmta(t2.Sub(t1)), // tcp connection
 			fmta(t6.Sub(t5)), // tls handshake
@@ -353,7 +353,7 @@ func visit(url *url.URL) {
 			fmtb(t7.Sub(t0)), // total
 		)
 	case "http":
-		printf(colorize(HTTPTemplate),
+		printf(colorize(httpTemplate),
 			fmta(t1.Sub(t0)), // dns lookup
 			fmta(t3.Sub(t1)), // tcp connection
 			fmta(t4.Sub(t3)), // server processing
