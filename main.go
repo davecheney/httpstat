@@ -144,8 +144,11 @@ func main() {
 }
 
 // readCACerts - helper function to load additional CA certificates
-func readCACerts(certfile string) (*x509.CertPool, error) {
-	certFileBytes, err := ioutil.ReadFile(certfile)
+func readCACerts(filename string) (*x509.CertPool, error) {
+	if filename == "" {
+		return nil, nil
+	}
+	certFileBytes, err := ioutil.ReadFile(filename)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to read CA certificate file: %v", err)
