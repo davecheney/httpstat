@@ -62,6 +62,7 @@ var (
 	clientCertFile  string
 	fourOnly        bool
 	sixOnly         bool
+	maxTime         time.Duration
 
 	// number of redirects followed
 	redirectsFollowed int
@@ -84,6 +85,7 @@ func init() {
 	flag.StringVar(&clientCertFile, "E", "", "client cert file for tls config")
 	flag.BoolVar(&fourOnly, "4", false, "resolve IPv4 addresses only")
 	flag.BoolVar(&sixOnly, "6", false, "resolve IPv6 addresses only")
+	flag.DurationVar(&maxTime, "m", 0, "maximum time allowed for the transfer")
 
 	flag.Usage = usage
 }
@@ -299,6 +301,7 @@ func visit(url *url.URL) {
 			// manually if required.
 			return http.ErrUseLastResponse
 		},
+		Timeout: maxTime,
 	}
 
 	resp, err := client.Do(req)
