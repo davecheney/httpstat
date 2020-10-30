@@ -2,7 +2,8 @@ on:
   push:
     branches:
     - master
-name: Push Event
+  pull_request:
+name: Go Test
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -11,9 +12,12 @@ jobs:
         go: [ '1.15' ]
     name: Go ${{ matrix.go }} test
     steps:
-      - uses: actions/checkout@v2
-      - name: Setup go
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Setup Go ${{ matrix.go }}
         uses: actions/setup-go@v1
         with:
           go-version: ${{ matrix.go }}
-      - run: go test -v ./...
+      - run: go test -race ./...
+      - run: go vet ./...
+      - run: go mod verify
