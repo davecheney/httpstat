@@ -1,23 +1,26 @@
 on:
   push:
     branches:
-    - master
+      - master
   pull_request:
-name: Go Test
+    branches:
+      - master
+name: Push
 jobs:
   test:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        go: [ '1.15' ]
-    name: Go ${{ matrix.go }} test
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-      - name: Setup Go ${{ matrix.go }}
-        uses: actions/setup-go@v1
-        with:
-          go-version: ${{ matrix.go }}
-      - run: go test -race ./...
-      - run: go vet ./...
-      - run: go mod verify
+    - name: Install Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.15.x
+    - name: Checkout code
+      uses: actions/checkout@v2
+    - name: Test
+      run: go test ./...
+    - name: Vet
+      run: go vet ./...
+    - name: Staticcheck
+      run: |
+        go get honnef.co/go/tools/cmd/staticcheck
+        staticcheck ./...
