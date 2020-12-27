@@ -17,9 +17,11 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
     - name: Test
-      run: go test ./...
+      run: go test -race ./...
     - name: Vet
       run: go vet ./...
+    - name: Mod verify
+      run: go mod verify
     - name: Staticcheck
       run: |
         go get honnef.co/go/tools/cmd/staticcheck
