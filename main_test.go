@@ -22,3 +22,17 @@ func TestParseURL(t *testing.T) {
 		}
 	}
 }
+
+func TestReadClientCert(t *testing.T) {
+	_, err := readClientCert("./test/singlecert.pem")
+
+	if err != nil {
+		t.Errorf("unable to read single cert and key: %v", err)
+	}
+
+	_, err = readClientCert("./test/multicert.pem")
+
+	if err != nil {
+		t.Errorf("unable to read multiple certs and key: %v", err)
+	}
+}

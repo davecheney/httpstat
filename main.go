@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"encoding/pem"
@@ -23,6 +24,7 @@ import (
 	"time"
 
 	"github.com/fatih/color"
+	"golang.org/x/net/http2"
 )
 
 const (
@@ -140,19 +142,19 @@ func main() {
 
 // readClientCert - helper function to read client certificate
 // from pem formatted file
-func readClientCert(filename string) []tls.Certificate {
+func readClientCert(filename string) ([]tls.Certificate, error) {
 	if filename == "" {
-		return nil
+		return nil, nil
 	}
 	var (
 		pkeyPem []byte
-		certPem []byte
+		certPem bytes.Buffer
 	)
 
 	// read client certificate file (must include client private key and certificate)
-	certFileBytes, err := ioutil.ReadFile(clientCertFile)
+	certFileBytes, err := ioutil.ReadFile(filename)
 	if err != nil {
-		log.Fatalf("failed to read client certificate file: %v", err)
+		return nil, fmt.Errorf("failed to read client certificate file: %v", err)
 	}
 
 	for {
@@ -166,15 +168,19 @@ func readClientCert(filename string) []tls.Certificate {
 			pkeyPem = pem.EncodeToMemory(block)
 		}
 		if strings.HasSuffix(block.Type, "CERTIFICATE") {
-			certPem = pem.EncodeToMemory(block)
+			err = pem.Encode(&certPem, block)
+			if err != nil {
+				return nil, fmt.Errorf("failed to read client certificate file: %v", err)
+			}
 		}
 	}
 
-	cert, err := tls.X509KeyPair(certPem, pkeyPem)
+	cert, err := tls.X509KeyPair(certPem.Bytes(), pkeyPem)
 	if err != nil {
-		log.Fatalf("unable to load client cert and key pair: %v", err)
+		return nil, fmt.Errorf("unable to load client cert and key pair: %v", err)
 	}
-	return []tls.Certificate{cert}
+
+	return []tls.Certificate{cert}, nil
 }
 
 func parseURL(uri string) *url.URL {
@@ -268,10 +274,15 @@ func visit(url *url.URL) {
 			host = req.Host
 		}
 
+		cert, err := readClientCert(clientCertFile)
+		if err != nil {
+			log.Fatal(err)
+		}
+
 		tr.TLSClientConfig = &tls.Config{
 			ServerName:         host,
 			InsecureSkipVerify: insecure,
-			Certificates:       readClientCert(clientCertFile),
+			Certificates:       cert,
 		}
 	}
 
