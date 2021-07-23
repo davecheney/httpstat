@@ -289,6 +289,24 @@ func visit(url *url.URL) {
 		log.Fatalf("failed to read response: %v", err)
 	}
 
+	// Print SSL/TLS version which is used for connection
+	connectedVia := "plaintext (unsecure)"
+	if resp.TLS != nil {
+		switch resp.TLS.Version {
+		case tls.VersionSSL30:
+			connectedVia = "SSLv3"
+		case tls.VersionTLS10:
+			connectedVia = "TLSv1.0"
+		case tls.VersionTLS11:
+			connectedVia = "TLSv1.1"
+		case tls.VersionTLS12:
+			connectedVia = "TLSv1.2"
+		case tls.VersionTLS13:
+			connectedVia = "TLSv1.3"
+		}
+	}
+	printf("\n%s %s\n", color.GreenString("Connected via"), color.CyanString("%s", connectedVia))
+
 	bodyMsg := readResponseBody(req, resp)
 	resp.Body.Close()
 
@@ -313,22 +331,6 @@ func visit(url *url.URL) {
 	if bodyMsg != "" {
 		printf("\n%s\n", bodyMsg)
 	}
-
-	// Print SSL/TLS version which is used for connection
-	tlsVersion := ""
-	switch resp.TLS.Version {
-	case tls.VersionSSL30:
-		tlsVersion = "SSL v3"
-	case tls.VersionTLS10:
-		tlsVersion = "TLS v1.0"
-	case tls.VersionTLS11:
-		tlsVersion = "TLS v1.1"
-	case tls.VersionTLS12:
-		tlsVersion = "TLS v1.2"
-	case tls.VersionTLS13:
-		tlsVersion = "TLS v1.3"
-	}
-	printf("\n%s %s\n", color.GreenString("Connected via"), color.CyanString("%s", tlsVersion))
 
 	fmta := func(d time.Duration) string {
 		return color.CyanString("%7dms", int(d/time.Millisecond))
