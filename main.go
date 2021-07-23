@@ -314,6 +314,22 @@ func visit(url *url.URL) {
 		printf("\n%s\n", bodyMsg)
 	}
 
+	// Print SSL/TLS version which is used for connection
+	tlsVersion := ""
+	switch resp.TLS.Version {
+	case tls.VersionSSL30:
+		tlsVersion = "SSL v3"
+	case tls.VersionTLS10:
+		tlsVersion = "TLS v1.0"
+	case tls.VersionTLS11:
+		tlsVersion = "TLS v1.1"
+	case tls.VersionTLS12:
+		tlsVersion = "TLS v1.2"
+	case tls.VersionTLS13:
+		tlsVersion = "TLS v1.3"
+	}
+	printf("\n%s %s\n", color.GreenString("Connected via"), color.CyanString("%s", tlsVersion))
+
 	fmta := func(d time.Duration) string {
 		return color.CyanString("%7dms", int(d/time.Millisecond))
 	}
