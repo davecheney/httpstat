@@ -290,7 +290,7 @@ func visit(url *url.URL) {
 	}
 
 	// Print SSL/TLS version which is used for connection
-	connectedVia := "plaintext (unsecure)"
+	connectedVia := "plaintext"
 	if resp.TLS != nil {
 		switch resp.TLS.Version {
 		case tls.VersionSSL30:
