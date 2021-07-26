@@ -272,6 +272,7 @@ func visit(url *url.URL) {
 			ServerName:         host,
 			InsecureSkipVerify: insecure,
 			Certificates:       readClientCert(clientCertFile),
+			MinVersion:         tls.VersionTLS10,
 		}
 	}
 
@@ -293,8 +294,6 @@ func visit(url *url.URL) {
 	connectedVia := "plaintext"
 	if resp.TLS != nil {
 		switch resp.TLS.Version {
-		case tls.VersionSSL30: //lint:ignore SA1019
-			connectedVia = "SSLv3"
 		case tls.VersionTLS10:
 			connectedVia = "TLSv1.0"
 		case tls.VersionTLS11:
