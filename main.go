@@ -293,8 +293,7 @@ func visit(url *url.URL) {
 	connectedVia := "plaintext"
 	if resp.TLS != nil {
 		switch resp.TLS.Version {
-		//lint:ignore SA1019
-		case tls.VersionSSL30:
+		case tls.VersionSSL30: //lint:ignore SA1019
 			connectedVia = "SSLv3"
 		case tls.VersionTLS10:
 			connectedVia = "TLSv1.0"
