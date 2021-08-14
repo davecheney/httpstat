@@ -22,13 +22,11 @@ import (
 	"strings"
 	"time"
 
-	"golang.org/x/net/http2"
-
 	"github.com/fatih/color"
 )
 
 const (
-	HTTPSTemplate = `` +
+	httpsTemplate = `` +
 		`  DNS Lookup   TCP Connection   TLS Handshake   Server Processing   Content Transfer` + "\n" +
 		`[%s  |     %s  |    %s  |        %s  |       %s  ]` + "\n" +
 		`            |                |               |                   |                  |` + "\n" +
@@ -38,7 +36,7 @@ const (
 		`                                                     starttransfer:%s        |` + "\n" +
 		`                                                                                total:%s` + "\n"
 
-	HTTPTemplate = `` +
+	httpTemplate = `` +
 		`   DNS Lookup   TCP Connection   Server Processing   Content Transfer` + "\n" +
 		`[ %s  |     %s  |        %s  |       %s  ]` + "\n" +
 		`             |                |                   |                  |` + "\n" +
@@ -60,6 +58,8 @@ var (
 	outputFile      string
 	showVersion     bool
 	clientCertFile  string
+	fourOnly        bool
+	sixOnly         bool
 
 	// number of redirects followed
 	redirectsFollowed int
@@ -80,6 +80,8 @@ func init() {
 	flag.StringVar(&outputFile, "o", "", "output file for body")
 	flag.BoolVar(&showVersion, "v", false, "print version number")
 	flag.StringVar(&clientCertFile, "E", "", "client cert file for tls config")
+	flag.BoolVar(&fourOnly, "4", false, "resolve IPv4 addresses only")
+	flag.BoolVar(&sixOnly, "6", false, "resolve IPv6 addresses only")
 
 	flag.Usage = usage
 }
@@ -110,6 +112,11 @@ func main() {
 	if showVersion {
 		fmt.Printf("%s %s (runtime: %s)\n", os.Args[0], version, runtime.Version())
 		os.Exit(0)
+	}
+
+	if fourOnly && sixOnly {
+		fmt.Fprintf(os.Stderr, "%s: Only one of -4 and -6 may be specified\n", os.Args[0])
+		os.Exit(-1)
 	}
 
 	args := flag.Args()
@@ -197,12 +204,22 @@ func headerKeyValue(h string) (string, string) {
 	return strings.TrimRight(h[:i], " "), strings.TrimLeft(h[i:], " :")
 }
 
+func dialContext(network string) func(ctx context.Context, network, addr string) (net.Conn, error) {
+	return func(ctx context.Context, _, addr string) (net.Conn, error) {
+		return (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+			DualStack: false,
+		}).DialContext(ctx, network, addr)
+	}
+}
+
 // visit visits a url and times the interaction.
 // If the response is a 30x, visit follows the redirect.
 func visit(url *url.URL) {
 	req := newRequest(httpMethod, url, postBody)
 
-	var t0, t1, t2, t3, t4 time.Time
+	var t0, t1, t2, t3, t4, t5, t6 time.Time
 
 	trace := &httptrace.ClientTrace{
 		DNSStart: func(_ httptrace.DNSStartInfo) { t0 = time.Now() },
@@ -223,6 +240,8 @@ func visit(url *url.URL) {
 		},
 		GotConn:              func(_ httptrace.GotConnInfo) { t3 = time.Now() },
 		GotFirstResponseByte: func() { t4 = time.Now() },
+		TLSHandshakeStart:    func() { t5 = time.Now() },
+		TLSHandshakeDone:     func(_ tls.ConnectionState, _ error) { t6 = time.Now() },
 	}
 	req = req.WithContext(httptrace.WithClientTrace(context.Background(), trace))
 
@@ -232,6 +251,14 @@ func visit(url *url.URL) {
 		IdleConnTimeout:       90 * time.Second,
 		TLSHandshakeTimeout:   10 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
+		ForceAttemptHTTP2:     true,
+	}
+
+	switch {
+	case fourOnly:
+		tr.DialContext = dialContext("tcp4")
+	case sixOnly:
+		tr.DialContext = dialContext("tcp6")
 	}
 
 	switch url.Scheme {
@@ -245,13 +272,6 @@ func visit(url *url.URL) {
 			ServerName:         host,
 			InsecureSkipVerify: insecure,
 			Certificates:       readClientCert(clientCertFile),
-		}
-
-		// Because we create a custom TLSClientConfig, we have to opt-in to HTTP/2.
-		// See https://github.com/golang/go/issues/14275
-		err = http2.ConfigureTransport(tr)
-		if err != nil {
-			log.Fatalf("failed to prepare transport for HTTP/2: %v", err)
 		}
 	}
 
@@ -272,7 +292,7 @@ func visit(url *url.URL) {
 	bodyMsg := readResponseBody(req, resp)
 	resp.Body.Close()
 
-	t5 := time.Now() // after read body
+	t7 := time.Now() // after read body
 	if t0.IsZero() {
 		// we skipped DNS
 		t0 = t1
@@ -312,28 +332,28 @@ func visit(url *url.URL) {
 
 	switch url.Scheme {
 	case "https":
-		printf(colorize(HTTPSTemplate),
+		printf(colorize(httpsTemplate),
 			fmta(t1.Sub(t0)), // dns lookup
 			fmta(t2.Sub(t1)), // tcp connection
-			fmta(t3.Sub(t2)), // tls handshake
+			fmta(t6.Sub(t5)), // tls handshake
 			fmta(t4.Sub(t3)), // server processing
-			fmta(t5.Sub(t4)), // content transfer
+			fmta(t7.Sub(t4)), // content transfer
 			fmtb(t1.Sub(t0)), // namelookup
 			fmtb(t2.Sub(t0)), // connect
 			fmtb(t3.Sub(t0)), // pretransfer
 			fmtb(t4.Sub(t0)), // starttransfer
-			fmtb(t5.Sub(t0)), // total
+			fmtb(t7.Sub(t0)), // total
 		)
 	case "http":
-		printf(colorize(HTTPTemplate),
+		printf(colorize(httpTemplate),
 			fmta(t1.Sub(t0)), // dns lookup
 			fmta(t3.Sub(t1)), // tcp connection
 			fmta(t4.Sub(t3)), // server processing
-			fmta(t5.Sub(t4)), // content transfer
+			fmta(t7.Sub(t4)), // content transfer
 			fmtb(t1.Sub(t0)), // namelookup
 			fmtb(t3.Sub(t0)), // connect
 			fmtb(t4.Sub(t0)), // starttransfer
-			fmtb(t5.Sub(t0)), // total
+			fmtb(t7.Sub(t0)), // total
 		)
 	}
 
@@ -446,7 +466,7 @@ func readResponseBody(req *http.Request, resp *http.Response) string {
 		msg = color.CyanString("Body read")
 	}
 
-	if _, err := io.Copy(w, resp.Body); err != nil {
+	if _, err := io.Copy(w, resp.Body); err != nil && w != ioutil.Discard {
 		log.Fatalf("failed to read response body: %v", err)
 	}
 
