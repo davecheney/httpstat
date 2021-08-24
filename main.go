@@ -272,6 +272,7 @@ func visit(url *url.URL) {
 			ServerName:         host,
 			InsecureSkipVerify: insecure,
 			Certificates:       readClientCert(clientCertFile),
+			MinVersion:         tls.VersionTLS12,
 		}
 	}
 
@@ -288,6 +289,18 @@ func visit(url *url.URL) {
 	if err != nil {
 		log.Fatalf("failed to read response: %v", err)
 	}
+
+	// Print SSL/TLS version which is used for connection
+	connectedVia := "plaintext"
+	if resp.TLS != nil {
+		switch resp.TLS.Version {
+		case tls.VersionTLS12:
+			connectedVia = "TLSv1.2"
+		case tls.VersionTLS13:
+			connectedVia = "TLSv1.3"
+		}
+	}
+	printf("\n%s %s\n", color.GreenString("Connected via"), color.CyanString("%s", connectedVia))
 
 	bodyMsg := readResponseBody(req, resp)
 	resp.Body.Close()
