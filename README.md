@@ -9,7 +9,7 @@ But seriously, https://github.com/reorx/httpstat is the new hotness, and this is
 ## Installation
 `httpstat` requires Go 1.13 or later.
 ```
-$ go get github.com/davecheney/httpstat
+$ go install github.com/davecheney/httpstat@latest
 ```	
 ## Usage
 ```
