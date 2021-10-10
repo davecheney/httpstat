@@ -150,7 +150,7 @@ func readClientCert(filename string) []tls.Certificate {
 	)
 
 	// read client certificate file (must include client private key and certificate)
-	certFileBytes, err := ioutil.ReadFile(clientCertFile)
+	certFileBytes, err := ioutil.ReadFile(filename)
 	if err != nil {
 		log.Fatalf("failed to read client certificate file: %v", err)
 	}
