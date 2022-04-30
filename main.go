@@ -320,7 +320,11 @@ func visit(url *url.URL) {
 	}
 	sort.Sort(headers(names))
 	for _, k := range names {
-		printf("%s %s\n", grayscale(14)(k+":"), color.CyanString(strings.Join(resp.Header[k], ",")))
+		if strings.HasPrefix(k, "X-0") {
+			printf("%s %s\n", color.New(97).SprintFunc()(k+":"), color.CyanString(strings.Join(resp.Header[k], ",")))
+		} else {
+			printf("%s %s\n", color.New(90).SprintfFunc()(k+":"), color.CyanString(strings.Join(resp.Header[k], ",")))
+		}
 	}
 
 	if bodyMsg != "" {
