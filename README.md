@@ -7,7 +7,7 @@ Imitation is the sincerest form of flattery.
 But seriously, https://github.com/reorx/httpstat is the new hotness, and this is a shameless rip off.
 
 ## Installation
-`httpstat` requires Go 1.13 or later.
+`httpstat` requires Go 1.20 or later.
 ```
 $ go install github.com/davecheney/httpstat@latest
 ```
