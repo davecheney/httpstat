@@ -4,7 +4,7 @@
 
 Imitation is the sincerest form of flattery.
 
-But seriously, https://github.com/reorx/httpstat is the new hotness, and this is a shameless rip off.
+But seriously, https://github.com/reorx/httpstat is the new hotness, and this project is a shameless rip off.
 
 ## Installation
 `httpstat` requires Go 1.20 or later.
