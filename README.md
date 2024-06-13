@@ -9,12 +9,12 @@ But seriously, https://github.com/reorx/httpstat is the new hotness, and this is
 ## Installation
 `httpstat` requires Go 1.20 or later.
 ```
-$ go install github.com/davecheney/httpstat@latest
+go install github.com/davecheney/httpstat@latest
 ```
 
 ## Usage
 ```
-$ httpstat https://example.com/
+httpstat https://example.com/
 ```
 ## Features
 
