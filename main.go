@@ -7,7 +7,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"mime"
 	"net"
@@ -21,8 +20,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"golang.org/x/net/http2"
 
 	"github.com/fatih/color"
 )
@@ -152,7 +149,7 @@ func readClientCert(filename string) []tls.Certificate {
 	)
 
 	// read client certificate file (must include client private key and certificate)
-	certFileBytes, err := ioutil.ReadFile(clientCertFile)
+	certFileBytes, err := os.ReadFile(filename)
 	if err != nil {
 		log.Fatalf("failed to read client certificate file: %v", err)
 	}
@@ -253,6 +250,7 @@ func visit(url *url.URL) {
 		IdleConnTimeout:       90 * time.Second,
 		TLSHandshakeTimeout:   10 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
+		ForceAttemptHTTP2:     true,
 	}
 
 	switch {
@@ -273,13 +271,7 @@ func visit(url *url.URL) {
 			ServerName:         host,
 			InsecureSkipVerify: insecure,
 			Certificates:       readClientCert(clientCertFile),
-		}
-
-		// Because we create a custom TLSClientConfig, we have to opt-in to HTTP/2.
-		// See https://github.com/golang/go/issues/14275
-		err = http2.ConfigureTransport(tr)
-		if err != nil {
-			log.Fatalf("failed to prepare transport for HTTP/2: %v", err)
+			MinVersion:         tls.VersionTLS12,
 		}
 	}
 
@@ -296,6 +288,18 @@ func visit(url *url.URL) {
 	if err != nil {
 		log.Fatalf("failed to read response: %v", err)
 	}
+
+	// Print SSL/TLS version which is used for connection
+	connectedVia := "plaintext"
+	if resp.TLS != nil {
+		switch resp.TLS.Version {
+		case tls.VersionTLS12:
+			connectedVia = "TLSv1.2"
+		case tls.VersionTLS13:
+			connectedVia = "TLSv1.3"
+		}
+	}
+	printf("\n%s %s\n", color.GreenString("Connected via"), color.CyanString("%s", connectedVia))
 
 	bodyMsg := readResponseBody(req, resp)
 	resp.Body.Close()
@@ -447,7 +451,7 @@ func readResponseBody(req *http.Request, resp *http.Response) string {
 		return ""
 	}
 
-	w := ioutil.Discard
+	w := io.Discard
 	msg := color.CyanString("Body discarded")
 
 	if saveOutput || outputFile != "" {
@@ -474,7 +478,7 @@ func readResponseBody(req *http.Request, resp *http.Response) string {
 		msg = color.CyanString("Body read")
 	}
 
-	if _, err := io.Copy(w, resp.Body); err != nil && w != ioutil.Discard {
+	if _, err := io.Copy(w, resp.Body); err != nil && w != io.Discard {
 		log.Fatalf("failed to read response body: %v", err)
 	}
 
