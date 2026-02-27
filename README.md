@@ -1,6 +1,4 @@
-# httpstat
-
-[![Build Status](https://travis-ci.org/davecheney/httpstat.svg?branch=master)](https://travis-ci.org/davecheney/httpstat)
+# httpstat [![Build Status](https://github.com/davecheney/httpstat/actions/workflows/push.yml/badge.svg)](https://github.com/davecheney/httpstat/actions/workflows/push.yml) [![Go Report Card](https://goreportcard.com/badge/github.com/davecheney/httpstat)](https://goreportcard.com/report/github.com/davecheney/httpstat)
 
 ![Shameless](./screenshot.png)
 
@@ -9,13 +7,14 @@ Imitation is the sincerest form of flattery.
 But seriously, https://github.com/reorx/httpstat is the new hotness, and this is a shameless rip off.
 
 ## Installation
-`httpstat` requires Go 1.7.1 or later.
+`httpstat` requires Go 1.20 or later.
 ```
-$ go get -u github.com/davecheney/httpstat
-```	
+go install github.com/davecheney/httpstat@latest
+```
+
 ## Usage
 ```
-$ httpstat https://example.com/
+httpstat https://example.com/
 ```
 ## Features
 
